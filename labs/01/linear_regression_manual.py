@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import argparse
 
 import numpy as np
@@ -22,19 +21,22 @@ def main(args: argparse.Namespace) -> float:
     # If you want to learn about the dataset, you can print some information
     # about it using `print(dataset.DESCR)`.
 
-    # TODO: Append a new feature to all input data, with value "1"
-
-    # TODO: Split the dataset into a train set and a test set.
+    # Append a new feature to all input data, with value "1" (that will be multiplied by bias)
+    dataset.data = np.append(dataset.data, np.ones([1,dataset.data.shape[0]]).transpose(), axis=1)
+   
+    # Split the dataset into a train set and a test set.
     # Use `sklearn.model_selection.train_test_split` method call, passing
     # arguments `test_size=args.test_size, random_state=args.seed`.
+    train_data, test_data, train_target, test_target = sklearn.model_selection.train_test_split(dataset.data, dataset.target, test_size=args.test_size, random_state=args.seed)
 
-    # TODO: Solve the linear regression using the algorithm from the lecture,
+    # Solve the linear regression using the algorithm from the lecture,
     # explicitly computing the matrix inverse (using `np.linalg.inv`).
+    optimal_weights = np.linalg.inv(train_data.transpose() @ train_data) @ train_data.transpose() @ train_target
+    
+    # Predict target values on the test set.
+    # Compute root mean square error on the test set predictions.
 
-    # TODO: Predict target values on the test set.
-
-    # TODO: Compute root mean square error on the test set predictions.
-    rmse = None
+    rmse = np.sqrt(np.mean(((test_data @ optimal_weights) - test_target)**2))
 
     return rmse
 
