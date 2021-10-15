@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import argparse
+import argpars
 
 import numpy as np
 import sklearn.datasets
