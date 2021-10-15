@@ -18,14 +18,12 @@ def main(args: argparse.Namespace) -> tuple[float, float]:
     # Load the Diabetes dataset
     dataset = sklearn.datasets.load_diabetes()
 
-    # TODO: Split the dataset into a train set and a test set.
     # Use `sklearn.model_selection.train_test_split` method call, passing
     # arguments `test_size=args.test_size, random_state=args.seed`.
     train_data, test_data, train_target, test_target = sklearn.model_selection.train_test_split(dataset.data, dataset.target, test_size=args.test_size, random_state=args.seed) 
 
     lambdas = np.geomspace(0.01, 10, num=500)
        
-    # TODO: Using `sklearn.linear_model.Ridge`, fit the train set using
     # L2 regularization, employing above defined lambdas.
     # For every model, compute the root mean squared error and return the
     # lambda producing lowest RMSE and the corresponding RMSE.
@@ -33,6 +31,8 @@ def main(args: argparse.Namespace) -> tuple[float, float]:
     best_rmse = 99999999 # Hoping my model gonna be better
     
     for l in lambdas:
+        # lambda is hyperparameter -> not adapted by model itself
+
         model = sklearn.linear_model.Ridge(alpha = l)
         model = model.fit(train_data, train_target)
         prediction = model.predict(test_data)
@@ -41,6 +41,13 @@ def main(args: argparse.Namespace) -> tuple[float, float]:
         if rmse < best_rmse:
             best_rmse = rmse
             best_lambda = l
+
+    # -------- Linear regression without L2 regularization -----------
+    # model = sklearn.linear_model.LinearRegression()
+    # model = model.fit(train_data, train_target)
+    # rmse = sklearn.metrics.mean_squared_error(test_target, prediction, squared=False)
+    # print(rmse)
+    # ----------------------------------------------------------------
 
     if args.plot:
         # This block is not required to pass in ReCodEx, however, it is useful
