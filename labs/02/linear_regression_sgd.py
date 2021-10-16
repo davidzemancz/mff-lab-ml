@@ -39,8 +39,9 @@ def main(args: argparse.Namespace) -> tuple[float, float]:
     train_rmses, test_rmses = [], []
     for epoch in range(args.epochs):
         permutation = generator.permutation(train_data.shape[0])
-        
-        # For every `args.batch_size`, average their gradient, and update the weights.
+
+        # TODO: Process the data in the order of `permutation`. For every
+        # `args.batch_size` of them, average their gradient, and update the weights.
         # A gradient for example (x_i, t_i) is `(x_i^T weights - t_i) * x_i`,
         # and the SGD update is
         #   weights = weights - args.learning_rate * (gradient + args.l2 * weights)`.
