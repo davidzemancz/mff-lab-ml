@@ -47,12 +47,13 @@ def main(args: argparse.Namespace) -> tuple[float, float]:
         #   weights = weights - args.learning_rate * (gradient + args.l2 * weights)`.
         # You can assume that `args.batch_size` exactly divides `train_data.shape[0]`.
         batches_count = train_data.shape[0] / args.batch_size
-        for batch in range(int(batches_count)):
-            gradient_sum = np.array([train_data.shape[1]])
-            for i in range(args.batch_size):
-                x_i = train_data[i]
-                t_i = train_target[i]
-                gradient = (x_i.transpose() @ weights - t_i) * x_i
+        for batch in range(1, int(batches_count) + 1):
+            gradient_sum = np.zeros([train_data.shape[1]])
+            for i in range(args.batch_size * (batch - 1), args.batch_size * batch):
+                p = permutation[i]
+                x_i = train_data[p]
+                t_i = train_target[p]
+                gradient = ((x_i.transpose() @ weights) - t_i) * x_i
                 gradient_sum = gradient_sum + gradient
             
             gradient_avrg = gradient_sum / args.batch_size
@@ -68,8 +69,12 @@ def main(args: argparse.Namespace) -> tuple[float, float]:
     # Compute into `explicit_rmse` test data RMSE when fitting
     # `sklearn.linear_model.LinearRegression` on train_data (ignoring args.l2).
     
-    weights = np.linalg.inv(train_data.transpose() @ train_data) @ train_data.transpose() @ train_target
-    explicit_rmse = np.sqrt(np.mean(((test_data @ weights) - test_target)**2))
+    model = sklearn.linear_model.LinearRegression().fit(train_data, train_target)
+    prediction = model.predict(test_data)
+    explicit_rmse = sklearn.metrics.mean_squared_error(test_target, prediction, squared=False)
+
+    # weights = np.linalg.inv(train_data.transpose() @ train_data) @ train_data.transpose() @ train_target
+    # explicit_rmse = np.sqrt(np.mean(((test_data @ weights) - test_target)**2))
 
     if args.plot:
         import matplotlib.pyplot as plt
