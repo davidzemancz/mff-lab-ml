@@ -68,12 +68,15 @@ def main(args: argparse.Namespace) -> tuple[float, float]:
 
     # Compute into `explicit_rmse` test data RMSE when fitting
     # `sklearn.linear_model.LinearRegression` on train_data (ignoring args.l2).
-    weights = np.linalg.inv((train_data.transpose() @ train_data)) @ train_data.transpose() @ train_target
-    explicit_rmse = np.sqrt(np.mean(((test_data @ weights) - test_target)**2))
+    
+    # This does not work well
+    #weights = np.linalg.inv((train_data.transpose() @ train_data)) @ train_data.transpose() @ train_target
+    #explicit_rmse = np.sqrt(np.mean(((test_data @ weights) - test_target)**2))
 
+    # This does
     model = sklearn.linear_model.LinearRegression().fit(train_data, train_target)
     prediction = model.predict(test_data)
-    #explicit_rmse = sklearn.metrics.mean_squared_error(test_target, prediction, squared=False)
+    explicit_rmse = sklearn.metrics.mean_squared_error(test_target, prediction, squared=False)
 
     if args.plot:
         import matplotlib.pyplot as plt
