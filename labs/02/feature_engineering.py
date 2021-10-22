@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 import argparse
 
 import numpy as np
@@ -10,7 +9,6 @@ import sklearn.preprocessing
 
 parser = argparse.ArgumentParser()
 # These arguments will be set appropriately by ReCodEx, even if you change them.
-parser.add_argument("--debug", default=True, type=bool, help="Print intermediate results for debugging")
 parser.add_argument("--dataset", default="diabetes", type=str, help="Standard sklearn dataset to load")
 parser.add_argument("--recodex", default=False, action="store_true", help="Running in ReCodEx")
 parser.add_argument("--seed", default=42, type=int, help="Random seed")
@@ -43,9 +41,11 @@ def get_int_cols(data):
 def main(args: argparse.Namespace) -> tuple[np.ndarray, np.ndarray]:
     dataset = getattr(sklearn.datasets, "load_{}".format(args.dataset))()
 
-    # Data and targets
-    data,target = dataset.data, dataset.target
-    
+    # Split the dataset into a train set and a test set.
+    # Use `sklearn.model_selection.train_test_split` method call, passing
+    # arguments `test_size=args.test_size, random_state=args.seed`.
+    train_data, test_data, train_target, test_target = sklearn.model_selection.train_test_split(dataset.data, dataset.target, test_size=args.test_size, random_state=args.seed)
+
     # Process the input columns in the following way:
     #
     # - if a column has only integer values, consider it a categorical column
@@ -73,9 +73,9 @@ def main(args: argparse.Namespace) -> tuple[np.ndarray, np.ndarray]:
     # usually comfortable.
 
     # Get columns that have only int values to list
-    int_cols, non_int_cols = get_int_cols(data)
+    int_cols, non_int_cols = get_int_cols(train_data)
    
-    # OneHotEncoder to fit int features to one-hot encoding ... replace by ColumnTransformer
+    # OneHotEncoder to fit int features to one-hot encoding ... replace by ColumnTransformer and Pipeline
     if False and len(int_cols) > 0:
         # Using OneHotEncoder
         enc = sklearn.preprocessing.OneHotEncoder(categories="auto", sparse=False, handle_unknown="ignore")
@@ -84,7 +84,7 @@ def main(args: argparse.Namespace) -> tuple[np.ndarray, np.ndarray]:
         # Then transform original data to trensformed data with one-hot features
         data_int_t = enc.transform(data[:, int_cols])
 
-    # Normalize non int columns ... replace by ColumnTransformer
+    # Normalize non int columns ... replace by ColumnTransformer and Pipeline
     if False and len(non_int_cols) > 0:
         # Using StandardScaler
         enc = sklearn.preprocessing.StandardScaler()
@@ -93,36 +93,34 @@ def main(args: argparse.Namespace) -> tuple[np.ndarray, np.ndarray]:
         # Then transform original data to trensformed data with one-hot features
         data_non_int_t = enc.transform(data[:, non_int_cols])
 
-    # Or rather use general column transformer instead separated transformes
+    # Use general column transformer instead separated transformes to specific columns
     ctr = sklearn.compose.ColumnTransformer([
         ("OneHotEncoder for int cols", sklearn.preprocessing.OneHotEncoder(categories="auto", sparse=False, handle_unknown="ignore"), int_cols),
         ("StandardScaler for non int cols", sklearn.preprocessing.StandardScaler(), non_int_cols),
-        ("PolynomialFeatures for all cols", sklearn.preprocessing.PolynomialFeatures(2, include_bias=False), int_cols + non_int_cols),
-        ],n_jobs=-1)
-    # Transformed data
-    data_t = ctr.fit_transform(data)
+        ], n_jobs=-1)
 
-    # --- DEBUG ---
-    #if args.debug: print(data[0])
-    #if args.debug: print(data_t[0])
-
-    # Split the dataset into a train set and a test set.
-    # Use `sklearn.model_selection.train_test_split` method call, passing
-    # arguments `test_size=args.test_size, random_state=args.seed`.
-    train_data, test_data, train_target, test_target = sklearn.model_selection.train_test_split(data_t, target, test_size=args.test_size, random_state=args.seed)
+    # Put column transforem and PolynomialFeatures to pipline in appropriate order
+    pipeline = sklearn.pipeline.Pipeline([
+        ("Column tranformer", ctr), 
+        ("PolynomialFeatures for all cols", sklearn.preprocessing.PolynomialFeatures(2, include_bias=False))]
+    )    
 
     # Fit the feature processing steps on the training data.
     # Then transform the training data into `train_data` (you can do both these
     # steps using `fit_transform`), and transform testing data to `test_data`.
-    # ... hmm, ok
-    # ...
+    
+    # Fit and transform train data
+    train_data = pipeline.fit_transform(train_data)
+
+    # Fit and transform test data
+    test_data = pipeline.fit_transform(test_data)
 
     return train_data[:5], test_data[:5]
-
-
+    
 if __name__ == "__main__":
     args = parser.parse_args([] if "__file__" not in globals() else None)
     train_data, test_data = main(args)
     for dataset in [train_data, test_data]:
         for line in range(min(dataset.shape[0], 5)):
-            if not args.debug: print(" ".join("{:.4g}".format(dataset[line, column]) for column in range(min(dataset.shape[1], 140))))
+            print(";".join("{:.4g}".format(dataset[line, column]) for column in range(min(dataset.shape[1], 140))))
+
