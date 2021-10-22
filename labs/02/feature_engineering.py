@@ -46,53 +46,9 @@ def main(args: argparse.Namespace) -> tuple[np.ndarray, np.ndarray]:
     # arguments `test_size=args.test_size, random_state=args.seed`.
     train_data, test_data, train_target, test_target = sklearn.model_selection.train_test_split(dataset.data, dataset.target, test_size=args.test_size, random_state=args.seed)
 
-    # Process the input columns in the following way:
-    #
-    # - if a column has only integer values, consider it a categorical column
-    #   (days in a week, dog breed, ...; in general integer values can also
-    #   represent numerical non-categorical values, but we use this assumption
-    #   for the sake of an exercise). Encode the values with one-hot encoding
-    #   using `sklearn.preprocessing.OneHotEncoder` (note that its output is by
-    #   default sparse, you can use `sparse=False` to generate dense output;
-    #   also use `handle_unknown="ignore"` to ignore missing values in test set).
-    # - for the rest of the columns, normalize their values so that they
-    #   have mean 0 and variance 1; use `sklearn.preprocessing.StandardScaler`.
-    #
-    # In the output, there should be first all the one-hot categorical features,
-    # and then the real-valued features. To process different dataset columns
-    # differently, you can use `sklearn.compose.ColumnTransformer`.
-    # 
-    # To the current features, append polynomial features of order 2.
-    # If the input values are [a, b, c, d], you should append
-    # [a^2, ab, ac, ad, b^2, bc, bd, c^2, cd, d^2]. You can generate such polynomial
-    # features either manually, or using
-    # `sklearn.preprocessing.PolynomialFeatures(2, include_bias=False)`.
-
-    # You can wrap all the feature processing steps into one transformer
-    # by using `sklearn.pipeline.Pipeline`. Although not strictly needed, it is
-    # usually comfortable.
-
     # Get columns that have only int values to list
     int_cols, non_int_cols = get_int_cols(train_data)
    
-    # OneHotEncoder to fit int features to one-hot encoding ... replace by ColumnTransformer and Pipeline
-    if False and len(int_cols) > 0:
-        # Using OneHotEncoder
-        enc = sklearn.preprocessing.OneHotEncoder(categories="auto", sparse=False, handle_unknown="ignore")
-        # First need to fit
-        enc.fit(data[:, int_cols])
-        # Then transform original data to trensformed data with one-hot features
-        data_int_t = enc.transform(data[:, int_cols])
-
-    # Normalize non int columns ... replace by ColumnTransformer and Pipeline
-    if False and len(non_int_cols) > 0:
-        # Using StandardScaler
-        enc = sklearn.preprocessing.StandardScaler()
-        # First need to fit
-        enc.fit(data[:, non_int_cols])
-        # Then transform original data to trensformed data with one-hot features
-        data_non_int_t = enc.transform(data[:, non_int_cols])
-
     # Use general column transformer instead separated transformes to specific columns
     ctr = sklearn.compose.ColumnTransformer([
         ("OneHotEncoder for int cols", sklearn.preprocessing.OneHotEncoder(categories="auto", sparse=False, handle_unknown="ignore"), int_cols),
@@ -102,18 +58,13 @@ def main(args: argparse.Namespace) -> tuple[np.ndarray, np.ndarray]:
     # Put column transforem and PolynomialFeatures to pipline in appropriate order
     pipeline = sklearn.pipeline.Pipeline([
         ("Column tranformer", ctr), 
-        ("PolynomialFeatures for all cols", sklearn.preprocessing.PolynomialFeatures(2, include_bias=False))]
-    )    
+        ("PolynomialFeatures for all cols", sklearn.preprocessing.PolynomialFeatures(2, include_bias=False))])    
 
-    # Fit the feature processing steps on the training data.
-    # Then transform the training data into `train_data` (you can do both these
-    # steps using `fit_transform`), and transform testing data to `test_data`.
-    
     # Fit and transform train data
     train_data = pipeline.fit_transform(train_data)
 
-    # Fit and transform test data
-    test_data = pipeline.fit_transform(test_data)
+    # Transform test data ... JUST transform, NO fitting
+    test_data = pipeline.transform(test_data)
 
     return train_data[:5], test_data[:5]
     
