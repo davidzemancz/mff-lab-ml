@@ -1,9 +1,17 @@
-#!/usr/bin/env python3
 import argparse
 import lzma
 import os
 import pickle
 import urllib.request
+
+import numpy as np
+import sklearn.compose
+import sklearn.datasets
+import sklearn.model_selection
+import sklearn.linear_model
+import sklearn.metrics
+import sklearn.pipeline
+import sklearn.preprocessing
 
 import numpy as np
 
@@ -52,26 +60,49 @@ def main(args: argparse.Namespace):
         # We are training a model.
         np.random.seed(args.seed)
         train = Dataset()
+        
+        #test = Dataset()
+        #train.data, test.data, train.target, test.target = sklearn.model_selection.train_test_split(train.data, train.target, test_size=0.5) 
 
-        # TODO: Train a model on the given dataset and store it in `model`.
-        model = None
+        # Train a model on the given dataset and store it in `model`.
+        pipeline = sklearn.pipeline.Pipeline([
+            ("Column tranformer",  sklearn.compose.ColumnTransformer([
+                ("OneHotEncoder", sklearn.preprocessing.OneHotEncoder(categories="auto", sparse=False, handle_unknown="ignore"), [0,1,2,3,4,5,6,7]),
+                ("StandardScaler for non int cols", sklearn.preprocessing.StandardScaler(), [8,9,10,11]),
+                ], n_jobs=-1)), 
+            ("PolynomialFeatures for all cols", sklearn.preprocessing.PolynomialFeatures(2, include_bias=True))]
+        )
 
+        train_data = pipeline.fit_transform(train.data)
+        model = sklearn.linear_model.SGDRegressor()
+        model = model.fit(train_data, train.target)
+        
         # Serialize the model.
-        with lzma.open(args.model_path, "wb") as model_file:
-            pickle.dump(model, model_file)
+        with lzma.open(args.model_path, "wb") as file:
+            pickle.dump(model, file)
+
+        # Serialize preprocessing pipeline
+        with lzma.open("rental_competition.prc", "wb") as file:
+            pickle.dump(pipeline, file)
+
+        #rmse = sklearn.metrics.mean_squared_error(test.target, predictions, squared=False)
+        #print(rmse)
 
     else:
         # Use the model and return test set predictions, as either a Python list or a NumPy array.
         test = Dataset(args.predict)
 
-        with lzma.open(args.model_path, "rb") as model_file:
-            model = pickle.load(model_file)
+        with lzma.open(args.model_path, "rb") as file:
+            model = pickle.load(file)
 
-        # TODO: Generate `predictions` with the test set predictions.
-        predictions = None
+        with lzma.open("rental_competition.prc", "rb") as file:
+            pipeline = pickle.load(file)
+
+        # Generate `predictions` with the test set predictions.
+        test_data = pipeline.transform(test.data)
+        predictions = model.predict(test_data)
 
         return predictions
-
 
 if __name__ == "__main__":
     args = parser.parse_args([] if "__file__" not in globals() else None)
