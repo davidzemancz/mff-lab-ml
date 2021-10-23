@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import argparse
 import sys
 
@@ -24,14 +23,15 @@ def main(args: argparse.Namespace) -> tuple[np.ndarray, list[tuple[float, float]
     generator = np.random.RandomState(args.seed)
 
     # Generate an artifical regression dataset
-    data, target = sklearn.datasets.make_classification(
-        n_samples=args.data_size, n_features=2, n_informative=2, n_redundant=0, random_state=args.seed)
+    data, target = sklearn.datasets.make_classification(n_samples=args.data_size, n_features=2, n_informative=2, n_redundant=0, random_state=args.seed)
 
-    # TODO: Append a constant feature with value 1 to the end of every input data
+    # Append a constant feature with value 1 to the end of every input data
+    dataset.data = np.append(dataset.data, np.ones([1,dataset.data.shape[0]]).transpose(), axis=1)
 
-    # TODO: Split the dataset into a train set and a test set.
+    # Split the dataset into a train set and a test set.
     # Use `sklearn.model_selection.train_test_split` method call, passing
     # arguments `test_size=args.test_size, random_state=args.seed`.
+    train_data, test_data, train_target, test_target = sklearn.model_selection.train_test_split(dataset.data, dataset.target, test_size=args.test_size, random_state=args.seed)
 
     # Generate initial linear regression weights
     weights = generator.uniform(size=train_data.shape[1], low=-0.1, high=0.1)
@@ -48,8 +48,7 @@ def main(args: argparse.Namespace) -> tuple[np.ndarray, list[tuple[float, float]
         # negative log likelihood, or crossentropy loss, or KL loss) per example.
         train_accuracy, train_loss, test_accuracy, test_loss = None, None, None, None
 
-        print("After iteration {}: train loss {:.4f} acc {:.1f}%, test loss {:.4f} acc {:.1f}%".format(
-            iteration + 1, train_loss, 100 * train_accuracy, test_loss, 100 * test_accuracy))
+        print("After iteration {}: train loss {:.4f} acc {:.1f}%, test loss {:.4f} acc {:.1f}%".format(iteration + 1, train_loss, 100 * train_accuracy, test_loss, 100 * test_accuracy))
 
         if args.plot:
             import matplotlib.pyplot as plt

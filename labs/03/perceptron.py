@@ -23,7 +23,8 @@ def main(args: argparse.Namespace) -> np.ndarray:
         n_clusters_per_class=1, flip_y=0, class_sep=2, random_state=args.seed)
     target = 2 * target - 1
 
-    # TODO: Append a constant feature with value 1 to the end of every input data
+    # Append a constant feature with value 1 to the end of every input data
+    data = np.append(data, np.ones([1,data.shape[0]]).transpose(), axis=1)
 
     # Generate initial perceptron weights
     weights = np.zeros(data.shape[1])
@@ -37,6 +38,9 @@ def main(args: argparse.Namespace) -> np.ndarray:
         # training data iteration, perform the required updates to the `weights`
         # for incorrectly classified examples. If all training instances are
         # correctly classified, set `done=True`, otherwise set `done=False`.
+        for p in permutation:
+            pass
+        
 
         if args.plot and not done:
             import matplotlib.pyplot as plt
