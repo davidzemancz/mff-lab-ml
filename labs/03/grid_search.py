@@ -1,4 +1,6 @@
-#!/usr/bin/env python3
+# fbc0b6cc-0238-11eb-9574-ea7484399335
+# 7b885094-03f8-11eb-9574-ea7484399335
+
 import argparse
 import sys
 
@@ -34,13 +36,6 @@ def main(args: argparse.Namespace) -> float:
     # 1. performs sklearn.preprocessing.MinMaxScaler()
     # 2. performs sklearn.preprocessing.PolynomialFeatures()
     # 3. performs sklearn.linear_model.LogisticRegression(random_state=args.seed)
-    
-    pipeline = sklearn.pipeline.Pipeline([
-        ("MinMaxScaler", sklearn.preprocessing.MinMaxScaler()),
-        ("PolynomialFeatures", sklearn.preprocessing.PolynomialFeatures()),
-        ("LogisticRegression", sklearn.linear_model.LogisticRegression(random_state=args.seed)),
-        ])
-
     # Then, using sklearn.model_selection.StratifiedKFold(5), evaluate crossvalidated
     # train performance of all combinations of the the following parameters:
     # - polynomial degree: 1, 2
@@ -51,12 +46,18 @@ def main(args: argparse.Namespace) -> float:
     #
     # The easiest way is to use `sklearn.model_selection.GridSearchCV`.
 
-    skf = sklearn.model_selection.StratifiedKFold(n_splits=5)
-    for train_index, test_index in skf.split(train_data, train_target):
-        X_train, X_test = X[train_index], X[test_index]
-        y_train, y_test = y[train_index], y[test_index]
+    pipeline = sklearn.pipeline.Pipeline([
+        ("MinMaxScaler", sklearn.preprocessing.MinMaxScaler()),
+        ("PolynomialFeatures", sklearn.preprocessing.PolynomialFeatures()),
+        ("LogisticRegression", sklearn.linear_model.LogisticRegression(random_state=args.seed)),
+        ])
 
-    test_accuracy = None
+    # Grid search with list of parameters to try
+    clf = sklearn.model_selection.GridSearchCV(pipeline, {"PolynomialFeatures__degree": [1,2], "LogisticRegression__C": [0.01, 1, 100], "LogisticRegression__solver": ["lbfgs", "sag"]}, n_jobs=-1, cv=5)
+    # Fit and find best parameters, set cv (CrossValidation) param to 5 splits
+    clf.fit(train_data, train_target)
+    # Get score on test data
+    test_accuracy = clf.score(test_data,test_target)
 
     return test_accuracy
 
