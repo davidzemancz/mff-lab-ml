@@ -65,25 +65,21 @@ def main(args: argparse.Namespace):
         #train.data, test.data, train.target, test.target = sklearn.model_selection.train_test_split(train.data, train.target, test_size=0.5) 
 
         # Train a model on the given dataset and store it in `model`.
-        pipeline = sklearn.pipeline.Pipeline([
-            ("Column tranformer",  sklearn.compose.ColumnTransformer([
+        model = sklearn.pipeline.Pipeline([
+            ("Transform - Column tranformer",  sklearn.compose.ColumnTransformer([
                 ("OneHotEncoder", sklearn.preprocessing.OneHotEncoder(categories="auto", sparse=False, handle_unknown="ignore"), [0,1,2,3,4,5,6,7]),
                 ("StandardScaler for non int cols", sklearn.preprocessing.StandardScaler(), [8,9,10,11]),
                 ], n_jobs=-1)), 
-            ("PolynomialFeatures for all cols", sklearn.preprocessing.PolynomialFeatures(2, include_bias=True))]
+            ("Transform - PolynomialFeatures for all cols", sklearn.preprocessing.PolynomialFeatures(2, include_bias=True)),
+            ("Estimator - SGD regression", sklearn.linear_model.SGDRegressor())]
         )
 
-        train_data = pipeline.fit_transform(train.data)
-        model = sklearn.linear_model.SGDRegressor()
-        model = model.fit(train_data, train.target)
+        # Transform data with transformers and than use estimator
+        model.fit(train.data, train.target)
         
         # Serialize the model.
         with lzma.open(args.model_path, "wb") as file:
             pickle.dump(model, file)
-
-        # Serialize preprocessing pipeline
-        with lzma.open("rental_competition.prc", "wb") as file:
-            pickle.dump(pipeline, file)
 
         #rmse = sklearn.metrics.mean_squared_error(test.target, predictions, squared=False)
         #print(rmse)
@@ -95,12 +91,8 @@ def main(args: argparse.Namespace):
         with lzma.open(args.model_path, "rb") as file:
             model = pickle.load(file)
 
-        with lzma.open("rental_competition.prc", "rb") as file:
-            pipeline = pickle.load(file)
-
         # Generate `predictions` with the test set predictions.
-        test_data = pipeline.transform(test.data)
-        predictions = model.predict(test_data)
+        predictions = model.predict(test.data)
 
         return predictions
 

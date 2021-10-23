@@ -25,15 +25,22 @@ def main(args: argparse.Namespace) -> float:
     # If you want to learn about the dataset, you can print some information
     # about it using `print(dataset.DESCR)`.
 
-    # TODO: Split the dataset into a train set and a test set.
+    # Split the dataset into a train set and a test set.
     # Use `sklearn.model_selection.train_test_split` method call, passing
     # arguments `test_size=args.test_size, random_state=args.seed`.
+    train_data, test_data, train_target, test_target = sklearn.model_selection.train_test_split(dataset.data, dataset.target, test_size=args.test_size, random_state=args.seed)
 
-    # TODO: Create a pipeline, which
+    # Create a pipeline, which
     # 1. performs sklearn.preprocessing.MinMaxScaler()
     # 2. performs sklearn.preprocessing.PolynomialFeatures()
     # 3. performs sklearn.linear_model.LogisticRegression(random_state=args.seed)
-    #
+    
+    pipeline = sklearn.pipeline.Pipeline([
+        ("MinMaxScaler", sklearn.preprocessing.MinMaxScaler()),
+        ("PolynomialFeatures", sklearn.preprocessing.PolynomialFeatures()),
+        ("LogisticRegression", sklearn.linear_model.LogisticRegression(random_state=args.seed)),
+        ])
+
     # Then, using sklearn.model_selection.StratifiedKFold(5), evaluate crossvalidated
     # train performance of all combinations of the the following parameters:
     # - polynomial degree: 1, 2
@@ -43,6 +50,12 @@ def main(args: argparse.Namespace) -> float:
     # For the best combination of parameters, compute the test set accuracy.
     #
     # The easiest way is to use `sklearn.model_selection.GridSearchCV`.
+
+    skf = sklearn.model_selection.StratifiedKFold(n_splits=5)
+    for train_index, test_index in skf.split(train_data, train_target):
+        X_train, X_test = X[train_index], X[test_index]
+        y_train, y_test = y[train_index], y[test_index]
+
     test_accuracy = None
 
     return test_accuracy
