@@ -1,4 +1,6 @@
-#!/usr/bin/env python3
+# fbc0b6cc-0238-11eb-9574-ea7484399335
+# 7b885094-03f8-11eb-9574-ea7484399335
+
 import argparse
 import sys
 
@@ -38,9 +40,14 @@ def main(args: argparse.Namespace) -> np.ndarray:
         # training data iteration, perform the required updates to the `weights`
         # for incorrectly classified examples. If all training instances are
         # correctly classified, set `done=True`, otherwise set `done=False`.
+        wrong = False
         for p in permutation:
-            pass
+            y = np.dot(data[p], weights)
+            if np.dot(target[p], y) <= 0: 
+                weights = weights + np.dot(target[p], data[p])
+                wrong = True
         
+        if not wrong: done = True
 
         if args.plot and not done:
             import matplotlib.pyplot as plt
