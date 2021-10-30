@@ -29,8 +29,7 @@ def main(args: argparse.Namespace) -> tuple[tuple[np.ndarray, ...], list[float]]
     # Split the dataset into a train set and a test set.
     # Use `sklearn.model_selection.train_test_split` method call, passing
     # arguments `test_size=args.test_size, random_state=args.seed`.
-    train_data, test_data, train_target, test_target = sklearn.model_selection.train_test_split(
-        data, target, test_size=args.test_size, random_state=args.seed)
+    train_data, test_data, train_target, test_target = sklearn.model_selection.train_test_split(data, target, test_size=args.test_size, random_state=args.seed)
 
     # Generate initial model weights
     weights = [generator.uniform(size=[train_data.shape[1], args.hidden_layer], low=-0.1, high=0.1),
