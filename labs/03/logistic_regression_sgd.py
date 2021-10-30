@@ -42,11 +42,26 @@ def main(args: argparse.Namespace) -> tuple[np.ndarray, list[tuple[float, float]
         # TODO: Process the data in the order of `permutation`. For every
         # `args.batch_size` of them, average their gradient, and update the weights.
         # You can assume that `args.batch_size` exactly divides `train_data.shape[0]`.
+        # Same as linear_regression_sgd.py in 02
+        batches_count = train_data.shape[0] / args.batch_size
+        for batch in range(1, int(batches_count) + 1):
+            gradient_sum = np.zeros([train_data.shape[1]])
+            for i in range(args.batch_size * (batch - 1), args.batch_size * batch):
+                p = permutation[i]
+                x_i = train_data[p]
+                t_i = train_target[p]
+                gradient = ((x_i.transpose() @ weights) - t_i) * x_i
+                gradient_sum = gradient_sum + gradient
+            
+            gradient_avrg = gradient_sum / args.batch_size
+            weights = weights - (args.learning_rate * gradient_avrg)
 
         # TODO: After the SGD iteration, measure the average loss and accuracy for both the
         # train test and the test set. The loss is the average MLE loss (i.e., the
         # negative log likelihood, or crossentropy loss, or KL loss) per example.
         train_accuracy, train_loss, test_accuracy, test_loss = None, None, None, None
+
+        train_loss=sklearn.metrics.log_loss()
 
         print("After iteration {}: train loss {:.4f} acc {:.1f}%, test loss {:.4f} acc {:.1f}%".format(iteration + 1, train_loss, 100 * train_accuracy, test_loss, 100 * test_accuracy))
 

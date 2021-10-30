@@ -35,7 +35,7 @@ def main(args: argparse.Namespace) -> np.ndarray:
     while not done:
         permutation = generator.permutation(data.shape[0])
 
-        # TODO: Implement the perceptron algorithm, notably one iteration
+        # Implement the perceptron algorithm, notably one iteration
         # over the training data in the order of `permutation`. During the
         # training data iteration, perform the required updates to the `weights`
         # for incorrectly classified examples. If all training instances are
