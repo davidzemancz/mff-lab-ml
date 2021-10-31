@@ -64,7 +64,7 @@ def main(args: argparse.Namespace) -> tuple[np.ndarray, list[tuple[float, float]
             gradient_avrg = gradient_sum / args.batch_size
             weights = weights - (args.learning_rate * gradient_avrg)
 
-        # TODO: After the SGD epoch, measure the average loss and accuracy for both the
+        # After the SGD epoch, measure the average loss and accuracy for both the
         # train test and the test set. The loss is the average MLE loss (i.e., the
         # negative log likelihood, or crossentropy loss, or KL loss) per example.
         train_accuracy, train_loss, test_accuracy, test_loss = 0, 0, 0, 0
