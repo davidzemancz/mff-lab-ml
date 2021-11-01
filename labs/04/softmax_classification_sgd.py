@@ -19,7 +19,7 @@ parser.add_argument("--test_size", default=797, type=lambda x:int(x) if x.isdigi
 
 def softmax(x):
     y = np.exp(x - np.max(x))
-    f_x = y / np.sum(np.exp(x))
+    f_x = y / np.sum(np.exp(x - np.max(x)))
     return f_x
 
 def main(args: argparse.Namespace) -> tuple[np.ndarray, list[tuple[float, float]]]:
@@ -85,7 +85,7 @@ def main(args: argparse.Namespace) -> tuple[np.ndarray, list[tuple[float, float]
            train_predictions[i] = softmax((x_i.transpose() @ weights))
            i = i + 1
         train_loss = sklearn.metrics.log_loss(train_target, train_predictions)
-        #train_accuracy = sklearn.metrics.accuracy_score(train_target, sklearn.preprocessing.binarize(train_predictions.reshape(-1, 1), threshold=0.5))
+        train_accuracy = sklearn.metrics.accuracy_score(train_target, sklearn.preprocessing.binarize(train_predictions, threshold=0.5))
 
         test_predictions = np.zeros(test_target.shape)
         i = 0
@@ -93,7 +93,7 @@ def main(args: argparse.Namespace) -> tuple[np.ndarray, list[tuple[float, float]
            test_predictions[i] = softmax((x_i.transpose() @ weights))
            i = i + 1
         test_loss = sklearn.metrics.log_loss(test_target, test_predictions)
-        #test_accuracy = sklearn.metrics.accuracy_score(test_target, sklearn.preprocessing.binarize(test_predictions.reshape(-1, 1), threshold=0.5))
+        test_accuracy = sklearn.metrics.accuracy_score(test_target, sklearn.preprocessing.binarize(test_predictions, threshold=0.5))
 
         print("After epoch {}: train loss {:.4f} acc {:.1f}%, test loss {:.4f} acc {:.1f}%".format(
             epoch + 1, train_loss, 100 * train_accuracy, test_loss, 100 * test_accuracy))
