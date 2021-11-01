@@ -28,9 +28,6 @@ def main(args: argparse.Namespace) -> tuple[np.ndarray, list[tuple[float, float]
 
     # Use the digits dataset
     data, target = sklearn.datasets.load_digits(n_class=args.classes, return_X_y=True)
-
-    target = np.reshape(target, (-1,1))
-    target = sklearn.preprocessing.OneHotEncoder(sparse=False, handle_unknown="ignore").fit_transform(target)
     
     # Append a constant feature with value 1 to the end of every input data
     data = np.pad(data, ((0, 0), (0, 1)), constant_values=1)
@@ -40,6 +37,9 @@ def main(args: argparse.Namespace) -> tuple[np.ndarray, list[tuple[float, float]
     # arguments `test_size=args.test_size, random_state=args.seed`.
     train_data, test_data, train_target, test_target = sklearn.model_selection.train_test_split(
         data, target, test_size=args.test_size, random_state=args.seed)
+
+    # Train target to one hot representation
+    train_target_oh = sklearn.preprocessing.OneHotEncoder(sparse=False, handle_unknown="ignore").fit_transform(np.reshape(train_target, (-1,1)))
 
     # Generate initial model weights as matrix count_of_features * count_of_classes
     weights = generator.uniform(size=[train_data.shape[1], args.classes], low=-0.1, high=0.1)
@@ -61,7 +61,7 @@ def main(args: argparse.Namespace) -> tuple[np.ndarray, list[tuple[float, float]
             for i in range(args.batch_size * (batch - 1), args.batch_size * batch):
                 p = permutation[i]
                 x_i = train_data[p]
-                t_i = train_target[p]
+                t_i = train_target_oh[p]
                 y_i = softmax(x_i.transpose() @ weights) # vector of size args.classes (sigmoid for each class)
 
                 x_i = np.reshape(x_i, (-1,1))
@@ -79,21 +79,21 @@ def main(args: argparse.Namespace) -> tuple[np.ndarray, list[tuple[float, float]
         # negative log likelihood, or crossentropy loss, or KL loss) per example.
         train_accuracy, train_loss, test_accuracy, test_loss = 0, 0, 0, 0
         
-        train_predictions = np.zeros(train_target.shape)
+        train_predictions = np.zeros([train_target.shape[0], args.classes])
         i = 0
         for x_i in train_data:
            train_predictions[i] = softmax((x_i.transpose() @ weights))
            i = i + 1
         train_loss = sklearn.metrics.log_loss(train_target, train_predictions)
-        train_accuracy = sklearn.metrics.accuracy_score(train_target, sklearn.preprocessing.binarize(train_predictions, threshold=0.5))
+        train_accuracy = sklearn.metrics.accuracy_score(train_target, np.argmax(train_predictions, axis=1))
 
-        test_predictions = np.zeros(test_target.shape)
+        test_predictions = np.zeros([test_target.shape[0], args.classes])
         i = 0
         for x_i in test_data:
            test_predictions[i] = softmax((x_i.transpose() @ weights))
            i = i + 1
         test_loss = sklearn.metrics.log_loss(test_target, test_predictions)
-        test_accuracy = sklearn.metrics.accuracy_score(test_target, sklearn.preprocessing.binarize(test_predictions, threshold=0.5))
+        test_accuracy = sklearn.metrics.accuracy_score(test_target, np.argmax(test_predictions, axis=1))
 
         print("After epoch {}: train loss {:.4f} acc {:.1f}%, test loss {:.4f} acc {:.1f}%".format(
             epoch + 1, train_loss, 100 * train_accuracy, test_loss, 100 * test_accuracy))
