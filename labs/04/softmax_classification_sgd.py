@@ -31,8 +31,7 @@ def main(args: argparse.Namespace) -> tuple[np.ndarray, list[tuple[float, float]
 
     target = np.reshape(target, (-1,1))
     target = sklearn.preprocessing.OneHotEncoder(sparse=False, handle_unknown="ignore").fit_transform(target)
-    print(target.shape)
-
+    
     # Append a constant feature with value 1 to the end of every input data
     data = np.pad(data, ((0, 0), (0, 1)), constant_values=1)
 
@@ -63,10 +62,13 @@ def main(args: argparse.Namespace) -> tuple[np.ndarray, list[tuple[float, float]
                 p = permutation[i]
                 x_i = train_data[p]
                 t_i = train_target[p]
-                y = softmax(x_i.transpose() @ weights) # vector of size args.classes (sigmoid for each class)
-                y = np.array([y]).T
-                x_i = np.array([x_i])
-                gradient = (y - t_i.T) @ x_i # Gradient is matrix
+                y_i = softmax(x_i.transpose() @ weights) # vector of size args.classes (sigmoid for each class)
+
+                x_i = np.reshape(x_i, (-1,1))
+                t_i = np.reshape(t_i, (-1,1))
+                y_i = np.reshape(y_i, (-1,1))
+
+                gradient = (y_i - t_i) @ x_i.T # Gradient is matrix
                 gradient_sum = gradient_sum + gradient
             
             gradient_avrg = gradient_sum / args.batch_size
