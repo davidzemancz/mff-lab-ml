@@ -29,6 +29,10 @@ def main(args: argparse.Namespace) -> tuple[np.ndarray, list[tuple[float, float]
     # Use the digits dataset
     data, target = sklearn.datasets.load_digits(n_class=args.classes, return_X_y=True)
 
+    target = np.reshape(target, (-1,1))
+    target = sklearn.preprocessing.OneHotEncoder(sparse=False, handle_unknown="ignore").fit_transform(target)
+    print(target.shape)
+
     # Append a constant feature with value 1 to the end of every input data
     data = np.pad(data, ((0, 0), (0, 1)), constant_values=1)
 
@@ -38,9 +42,9 @@ def main(args: argparse.Namespace) -> tuple[np.ndarray, list[tuple[float, float]
     train_data, test_data, train_target, test_target = sklearn.model_selection.train_test_split(
         data, target, test_size=args.test_size, random_state=args.seed)
 
-    # Generate initial model weights
+    # Generate initial model weights as matrix count_of_features * count_of_classes
     weights = generator.uniform(size=[train_data.shape[1], args.classes], low=-0.1, high=0.1)
-
+        
     for epoch in range(args.epochs):
         permutation = generator.permutation(train_data.shape[0])
 
@@ -59,12 +63,14 @@ def main(args: argparse.Namespace) -> tuple[np.ndarray, list[tuple[float, float]
                 p = permutation[i]
                 x_i = train_data[p]
                 t_i = train_target[p]
-                r = softmax(x_i.transpose() @ weights)
-                gradient = (r - t_i) * x_i
+                y = softmax(x_i.transpose() @ weights) # vector of size args.classes (sigmoid for each class)
+                y = np.array([y]).T
+                x_i = np.array([x_i])
+                gradient = (y - t_i.T) @ x_i # Gradient is matrix
                 gradient_sum = gradient_sum + gradient
             
             gradient_avrg = gradient_sum / args.batch_size
-            weights = weights - (args.learning_rate * gradient_avrg)
+            weights = weights - (args.learning_rate * gradient_avrg).T
 
         # TODO: After the SGD epoch, measure the average loss and accuracy for both the
         # train test and the test set. The loss is the average MLE loss (i.e., the
@@ -74,7 +80,7 @@ def main(args: argparse.Namespace) -> tuple[np.ndarray, list[tuple[float, float]
         train_predictions = np.zeros(train_target.shape)
         i = 0
         for x_i in train_data:
-           train_predictions[i] = sigmoid((x_i.transpose() @ weights))
+           train_predictions[i] = softmax((x_i.transpose() @ weights))
            i = i + 1
         train_loss = sklearn.metrics.log_loss(train_target, train_predictions)
         #train_accuracy = sklearn.metrics.accuracy_score(train_target, sklearn.preprocessing.binarize(train_predictions.reshape(-1, 1), threshold=0.5))
@@ -82,7 +88,7 @@ def main(args: argparse.Namespace) -> tuple[np.ndarray, list[tuple[float, float]
         test_predictions = np.zeros(test_target.shape)
         i = 0
         for x_i in test_data:
-           test_predictions[i] = sigmoid((x_i.transpose() @ weights))
+           test_predictions[i] = softmax((x_i.transpose() @ weights))
            i = i + 1
         test_loss = sklearn.metrics.log_loss(test_target, test_predictions)
         #test_accuracy = sklearn.metrics.accuracy_score(test_target, sklearn.preprocessing.binarize(test_predictions.reshape(-1, 1), threshold=0.5))
