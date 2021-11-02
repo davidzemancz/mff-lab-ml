@@ -21,6 +21,10 @@ parser.add_argument("--test_size", default=797, type=lambda x:int(x) if x.isdigi
 # If you add more arguments, ReCodEx will keep them with your default values.
 
 def softmax(x):
+    """
+    Computes softmax of x (np array)
+    It's normalized (x - np.max(x))
+    """
     y = np.exp(x - np.max(x))
     f_x = y / np.sum(np.exp(x - np.max(x)))
     return f_x
@@ -50,7 +54,7 @@ def main(args: argparse.Namespace) -> tuple[np.ndarray, list[tuple[float, float]
     for epoch in range(args.epochs):
         permutation = generator.permutation(train_data.shape[0])
 
-        # TODO: Process the data in the order of `permutation`.
+        # Process the data in the order of `permutation`.
         # For every `args.batch_size`, average their gradient, and update the weights.
         # You can assume that `args.batch_size` exactly divides `train_data.shape[0]`.
         #
@@ -64,9 +68,10 @@ def main(args: argparse.Namespace) -> tuple[np.ndarray, list[tuple[float, float]
             for i in range(args.batch_size * (batch - 1), args.batch_size * batch):
                 p = permutation[i]
                 x_i = train_data[p]
-                t_i = train_target_oh[p]
-                y_i = softmax(x_i.transpose() @ weights) # vector of size args.classes (sigmoid for each class)
+                t_i = train_target_oh[p] # One-hot represenatation of target data (same size as y-i)
+                y_i = softmax(x_i.transpose() @ weights) # Vector of size args.classes (sigmoid for each class) ... probrabilities of each class
 
+                # Convert to 2D vectors
                 x_i = np.reshape(x_i, (-1,1))
                 t_i = np.reshape(t_i, (-1,1))
                 y_i = np.reshape(y_i, (-1,1))
@@ -77,7 +82,7 @@ def main(args: argparse.Namespace) -> tuple[np.ndarray, list[tuple[float, float]
             gradient_avrg = gradient_sum / args.batch_size
             weights = weights - (args.learning_rate * gradient_avrg).T
 
-        # TODO: After the SGD epoch, measure the average loss and accuracy for both the
+        # After the SGD epoch, measure the average loss and accuracy for both the
         # train test and the test set. The loss is the average MLE loss (i.e., the
         # negative log likelihood, or crossentropy loss, or KL loss) per example.
         train_accuracy, train_loss, test_accuracy, test_loss = 0, 0, 0, 0
@@ -87,6 +92,7 @@ def main(args: argparse.Namespace) -> tuple[np.ndarray, list[tuple[float, float]
         for x_i in train_data:
            train_predictions[i] = softmax((x_i.transpose() @ weights))
            i = i + 1
+        # Compute loss and accuracy (using train_target as NON-one-hot and train_predictions as list of vectors of probabilities)
         train_loss = sklearn.metrics.log_loss(train_target, train_predictions)
         train_accuracy = sklearn.metrics.accuracy_score(train_target, np.argmax(train_predictions, axis=1))
 
@@ -95,6 +101,7 @@ def main(args: argparse.Namespace) -> tuple[np.ndarray, list[tuple[float, float]
         for x_i in test_data:
            test_predictions[i] = softmax((x_i.transpose() @ weights))
            i = i + 1
+        # Compute loss and accuracy
         test_loss = sklearn.metrics.log_loss(test_target, test_predictions)
         test_accuracy = sklearn.metrics.accuracy_score(test_target, np.argmax(test_predictions, axis=1))
 
