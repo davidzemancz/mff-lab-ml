@@ -65,7 +65,8 @@ def main(args: argparse.Namespace):
         model = sklearn.pipeline.Pipeline([
             ("Transform - Column tranformer",  sklearn.compose.ColumnTransformer([
                 ("OneHotEncoder", sklearn.preprocessing.OneHotEncoder(categories="auto", sparse=False, handle_unknown="ignore"), [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14]),
-                ("StandardScaler for non int cols", sklearn.preprocessing.StandardScaler(), [15,16,17,18,19,20]),
+                #("StandardScaler for non int cols", sklearn.preprocessing.StandardScaler(), [15,16,17,18,19,20]),
+                ("RobustScaler for non int cols", sklearn.preprocessing.RobustScaler(), [15,16,17,18,19,20]),
                 ], n_jobs=-1)), 
             ("Transform - PolynomialFeatures for all cols", sklearn.preprocessing.PolynomialFeatures(3, include_bias=True)),
             ("Estimator - Logistic regression", sklearn.linear_model.LogisticRegression(max_iter = 1000))]
