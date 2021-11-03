@@ -1,4 +1,6 @@
-#!/usr/bin/env python3
+# fbc0b6cc-0238-11eb-9574-ea7484399335
+# 7b885094-03f8-11eb-9574-ea7484399335
+
 import argparse
 import lzma
 import os
@@ -16,6 +18,7 @@ import sklearn.metrics
 import sklearn.pipeline
 import sklearn.preprocessing
 import sklearn.neural_network
+from sklearn.experimental import enable_halving_search_cv
 
 class Dataset:
     """MNIST Dataset.
@@ -54,29 +57,36 @@ def main(args: argparse.Namespace):
         test = types.SimpleNamespace()
 
         if args.test:
-            train.data = train.data[1000:]
-            train.target = train.target[1000:]
-            train.data, test.data, train.target, test.target = sklearn.model_selection.train_test_split(train.data, train.target, test_size=0.5, random_state=42)
+            train.data, test.data, train.target, test.target = sklearn.model_selection.train_test_split(train.data, train.target, test_size=0.3, random_state=42)
         
         # Train a model on the given dataset and store it in `model`.
         model = sklearn.pipeline.Pipeline([
-            ("Estimator - MLP classifier", sklearn.neural_network.MLPClassifier(activation="relu", solver="sgd", max_iter=200))]
+            ("StandardScaler", sklearn.preprocessing.StandardScaler()),
+            ("MLP_classifier", sklearn.neural_network.MLPClassifier(activation="relu", solver="sgd", max_iter=1000, alpha=1, learning_rate="adaptive"))]
         )
 
-        # Transform data with transformers and than use estimator
+        # Using halving cross-validation to find best hyperparameters
+        #model = sklearn.model_selection.HalvingGridSearchCV(model, {"MLP_classifier__alpha": np.geomspace(0.01, 10, num=10)})
+
+        # Fit
         model.fit(train.data, train.target)
 
         # Test on test data
         if args.test:
-            train_predictions = model.predict(train.data)
+            train_predictions = model.predict_proba(train.data)
             train_loss = sklearn.metrics.log_loss(train.target, train_predictions)
-            train_accuracy = sklearn.metrics.accuracy_score(train.target, train_predictions)
+            train_accuracy = sklearn.metrics.accuracy_score(train.target, np.argmax(train_predictions,axis=1))
             print("TRAIN","Loss:",train_loss,"Acc:",train_accuracy)
 
-            test_predictions = model.predict(test.data)
+            test_predictions = model.predict_proba(test.data)
             test_loss = sklearn.metrics.log_loss(test.target, test_predictions)
-            test_accuracy = sklearn.metrics.accuracy_score(test.target, test_predictions)
+            test_accuracy = sklearn.metrics.accuracy_score(test.target, np.argmax(test_predictions,axis=1))
             print("TEST","Loss:",test_loss,"Acc:",test_accuracy)
+
+        # Wake me up after training is over
+        if args.test:
+            import winsound
+            winsound.PlaySound("SystemHand", winsound.SND_ALIAS)
 
         # If you trained one or more MLPs, you can use the following code
         # to compress it significantly (approximately 12 times). The snippet
@@ -96,7 +106,7 @@ def main(args: argparse.Namespace):
         with lzma.open(args.model_path, "rb") as model_file:
             model = pickle.load(model_file)
 
-        # TODO: Generate `predictions` with the test set predictions.
+        # Generate `predictions` with the test set predictions.
         predictions = model.predict(test.data)
 
         return predictions
