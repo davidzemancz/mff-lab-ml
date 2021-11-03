@@ -5,7 +5,17 @@ import os
 import pickle
 import urllib.request
 
+import types
+
 import numpy as np
+import sklearn.compose
+import sklearn.datasets
+import sklearn.model_selection
+import sklearn.linear_model
+import sklearn.metrics
+import sklearn.pipeline
+import sklearn.preprocessing
+import sklearn.neural_network
 
 class Dataset:
     """MNIST Dataset.
@@ -34,15 +44,39 @@ parser.add_argument("--recodex", default=False, action="store_true", help="Runni
 parser.add_argument("--seed", default=42, type=int, help="Random seed")
 # For these and any other arguments you add, ReCodEx will keep your default value.
 parser.add_argument("--model_path", default="mnist_competition.model", type=str, help="Model path")
+parser.add_argument("--test", default=False, type=bool, help="Test flag")
 
 def main(args: argparse.Namespace):
     if args.predict is None:
         # We are training a model.
         np.random.seed(args.seed)
         train = Dataset()
+        test = types.SimpleNamespace()
 
-        # TODO: Train a model on the given dataset and store it in `model`.
-        model = None
+        if args.test:
+            train.data = train.data[1000:]
+            train.target = train.target[1000:]
+            train.data, test.data, train.target, test.target = sklearn.model_selection.train_test_split(train.data, train.target, test_size=0.5, random_state=42)
+        
+        # Train a model on the given dataset and store it in `model`.
+        model = sklearn.pipeline.Pipeline([
+            ("Estimator - MLP classifier", sklearn.neural_network.MLPClassifier(activation="relu", solver="sgd", max_iter=200))]
+        )
+
+        # Transform data with transformers and than use estimator
+        model.fit(train.data, train.target)
+
+        # Test on test data
+        if args.test:
+            train_predictions = model.predict(train.data)
+            train_loss = sklearn.metrics.log_loss(train.target, train_predictions)
+            train_accuracy = sklearn.metrics.accuracy_score(train.target, train_predictions)
+            print("TRAIN","Loss:",train_loss,"Acc:",train_accuracy)
+
+            test_predictions = model.predict(test.data)
+            test_loss = sklearn.metrics.log_loss(test.target, test_predictions)
+            test_accuracy = sklearn.metrics.accuracy_score(test.target, test_predictions)
+            print("TEST","Loss:",test_loss,"Acc:",test_accuracy)
 
         # If you trained one or more MLPs, you can use the following code
         # to compress it significantly (approximately 12 times). The snippet
@@ -63,7 +97,7 @@ def main(args: argparse.Namespace):
             model = pickle.load(model_file)
 
         # TODO: Generate `predictions` with the test set predictions.
-        predictions = None
+        predictions = model.predict(test.data)
 
         return predictions
 
