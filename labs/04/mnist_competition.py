@@ -55,7 +55,7 @@ def main(args: argparse.Namespace):
         np.random.seed(args.seed)
         train = Dataset()
         test = types.SimpleNamespace()
-
+       
         if args.test:
             train.data, test.data, train.target, test.target = sklearn.model_selection.train_test_split(train.data, train.target, test_size=0.3, random_state=42)
         
