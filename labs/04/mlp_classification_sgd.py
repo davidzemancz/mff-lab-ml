@@ -36,6 +36,11 @@ def main(args: argparse.Namespace) -> tuple[tuple[np.ndarray, ...], list[float]]
                generator.uniform(size=[args.hidden_layer, args.classes], low=-0.1, high=0.1)]
     biases = [np.zeros(args.hidden_layer), np.zeros(args.classes)]
 
+    # -------------
+    #   Useful link:
+    #       https://rstudio-pubs-static.s3.amazonaws.com/337306_79a7966fad184532ab3ad66b322fe96e.html
+    # -------------
+
     def softmax(x):
         """
         Computes softmax of x (np array)
@@ -69,16 +74,38 @@ def main(args: argparse.Namespace) -> tuple[tuple[np.ndarray, ...], list[float]]
         
         hLayer_output = ReLU(inputs @ weights[0] + biases[0])
         oLayer_output = softmax(hLayer_output @ weights[1] + biases[1])
-        return oLayer_output
+        return (hLayer_output, oLayer_output)
 
 
     for iteration in range(args.iterations):
         permutation = generator.permutation(train_data.shape[0])
 
-        # TODO: Process the data in the order of `permutation`.
+        # Process the data in the order of `permutation`.
         # For every `args.batch_size`, average their gradient, and update the weights.
         # You can assume that `args.batch_size` exactly divides `train_data.shape[0]`.
-        #
+        batches_count = train_data.shape[0] / args.batch_size
+        for batch in range(1, int(batches_count) + 1):
+
+            # Gradient
+            gradient_weights_sum = np.zeros(weights.shape)
+            gradient_biases_sum = np.zeros(biases.shape)
+            
+            # For each sample
+            for i in range(args.batch_size * (batch - 1), args.batch_size * batch):
+                p = permutation[i]
+                x_i = train_data[p]
+                t_i = train_target[p]
+                activation_result = forward(x_i)
+            
+            # Update weights (both, on hidden and output layer)
+            gradient_weights_avrg = gradient_weights_sum / args.batch_size
+            weights = weights - (args.learning_rate * gradient_weights_avrg)
+
+            # Update biases (both, on hidden and output layer)
+            gradient_biases_avrg = gradient_biases_sum / args.batch_size
+            biases = biases - (args.learning_rate * gradient_biases_avrg)
+
+
         # The gradient used in SGD has now four parts, gradient of weights[0] and weights[1]
         # and gradient of biases[0] and biases[1].
         #
