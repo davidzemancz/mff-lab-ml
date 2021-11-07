@@ -36,8 +36,23 @@ def main(args: argparse.Namespace) -> tuple[tuple[np.ndarray, ...], list[float]]
                generator.uniform(size=[args.hidden_layer, args.classes], low=-0.1, high=0.1)]
     biases = [np.zeros(args.hidden_layer), np.zeros(args.classes)]
 
+    def softmax(x):
+        """
+        Computes softmax of x (np array)
+        It's normalized (x - np.max(x))
+        """
+        y = np.exp(x - np.max(x))
+        f_x = y / np.sum(np.exp(x - np.max(x)))
+        return f_x
+        
+    def ReLU(x):
+        """
+        Returns max(x, 0)
+        """
+        return max(x, 0)
+
     def forward(inputs):
-        # TODO: Implement forward propagation, returning *both* the value of the hidden
+        # Implement forward propagation, returning *both* the value of the hidden
         # layer and the value of the output layer.
         #
         # We assume a neural network with a single hidden layer of size `args.hidden_layer`
@@ -51,7 +66,11 @@ def main(args: argparse.Namespace) -> tuple[tuple[np.ndarray, ...], list[float]]
         # in softmax can easily overflow. To avoid it, you should use the fact that
         # softmax(z) = softmax(z + any_constant) and compute softmax(z) = softmax(z - maximum_of_z).
         # That way we only exponentiate values which are non-positive, and overflow does not occur.
-        raise NotImplementedError()
+        
+        hLayer_output = ReLU(inputs @ weights[0] + biases[0])
+        oLayer_output = softmax(hLayer_output @ weights[1] + biases[1])
+        return oLayer_output
+
 
     for iteration in range(args.iterations):
         permutation = generator.permutation(train_data.shape[0])
