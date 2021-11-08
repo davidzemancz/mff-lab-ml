@@ -50,6 +50,11 @@ parser.add_argument("--model_path", default="mnist_competition.model", type=str,
 parser.add_argument("--test", default=False, type=bool, help="Test flag")
 
 def main(args: argparse.Namespace):
+
+    #print(np.geomspace(0.1, 5), num=5)
+    #print(np.linspace(100, 1000), num=5)
+    #print(np.linspace(100, 1000), num=5)
+
     if args.predict is None:
         # We are training a model.
         np.random.seed(args.seed)
@@ -59,29 +64,37 @@ def main(args: argparse.Namespace):
         if args.test:
             train.data, test.data, train.target, test.target = sklearn.model_selection.train_test_split(train.data, train.target, test_size=0.3, random_state=42)
         
-        # Train a model on the given dataset and store it in `model`.
-        model = sklearn.pipeline.Pipeline([
-            ("StandardScaler", sklearn.preprocessing.StandardScaler()),
-            ("MLP_classifier", sklearn.neural_network.MLPClassifier(activation="relu", solver="sgd", max_iter=1000, alpha=1, learning_rate="adaptive"))]
-        )
+        
+       
+        for hls in [100,200,1000]:
+            for mi in [100,1000,5000]:
+                for a in [0.1, 1, 3]: 
 
-        # Using halving cross-validation to find best hyperparameters
-        #model = sklearn.model_selection.HalvingGridSearchCV(model, {"MLP_classifier__alpha": np.geomspace(0.01, 10, num=10)})
+                    model = sklearn.pipeline.Pipeline([
+                        ("StandardScaler", sklearn.preprocessing.StandardScaler()),
+                        ("MLP_classifier", sklearn.neural_network.MLPClassifier(hidden_layer_sizes=hls, activation="relu", solver="adam", max_iter=mi, alpha=a, learning_rate="adaptive"))]
+                    )
 
-        # Fit
-        model.fit(train.data, train.target)
+                    # Fit
+                    model.fit(train.data, train.target)
 
-        # Test on test data
-        if args.test:
-            train_predictions = model.predict_proba(train.data)
-            train_loss = sklearn.metrics.log_loss(train.target, train_predictions)
-            train_accuracy = sklearn.metrics.accuracy_score(train.target, np.argmax(train_predictions,axis=1))
-            print("TRAIN","Loss:",train_loss,"Acc:",train_accuracy)
+                    # Test on test data
+                    if args.test:
+                        print("===============")
 
-            test_predictions = model.predict_proba(test.data)
-            test_loss = sklearn.metrics.log_loss(test.target, test_predictions)
-            test_accuracy = sklearn.metrics.accuracy_score(test.target, np.argmax(test_predictions,axis=1))
-            print("TEST","Loss:",test_loss,"Acc:",test_accuracy)
+                        print("PARAMS","hls:",hls,"mi:",mi,"a:",a)
+
+                        train_predictions = model.predict_proba(train.data)
+                        train_loss = sklearn.metrics.log_loss(train.target, train_predictions)
+                        train_accuracy = sklearn.metrics.accuracy_score(train.target, np.argmax(train_predictions,axis=1))
+                        print("TRAIN","Loss:",train_loss,"Acc:",train_accuracy)
+
+                        test_predictions = model.predict_proba(test.data)
+                        test_loss = sklearn.metrics.log_loss(test.target, test_predictions)
+                        test_accuracy = sklearn.metrics.accuracy_score(test.target, np.argmax(test_predictions,axis=1))
+                        print("TEST","Loss:",test_loss,"Acc:",test_accuracy)
+
+                        print("===============")
 
         # Wake me up after training is over
         if args.test:
