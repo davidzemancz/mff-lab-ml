@@ -63,8 +63,7 @@ def main(args: argparse.Namespace):
        
         if args.test:
             train.data, test.data, train.target, test.target = sklearn.model_selection.train_test_split(train.data, train.target, test_size=0.3, random_state=42)
-        
-        
+                
        
         for hls in [100,200,1000]:
             for mi in [100,1000,5000]:
