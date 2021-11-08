@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import argparse
 import sys
 
@@ -12,7 +11,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--batch_size", default=10, type=int, help="Batch size")
 parser.add_argument("--classes", default=10, type=int, help="Number of classes to use")
 parser.add_argument("--hidden_layer", default=50, type=int, help="Hidden layer size")
-parser.add_argument("--iterations", default=10, type=int, help="Number of iterations over the data")
+parser.add_argument("--epochs", default=10, type=int, help="Number of epochs over the data")
 parser.add_argument("--learning_rate", default=0.01, type=float, help="Learning rate")
 parser.add_argument("--recodex", default=False, action="store_true", help="Running in ReCodEx")
 parser.add_argument("--seed", default=42, type=int, help="Random seed")
@@ -30,6 +29,9 @@ def main(args: argparse.Namespace) -> tuple[tuple[np.ndarray, ...], list[float]]
     # Use `sklearn.model_selection.train_test_split` method call, passing
     # arguments `test_size=args.test_size, random_state=args.seed`.
     train_data, test_data, train_target, test_target = sklearn.model_selection.train_test_split(data, target, test_size=args.test_size, random_state=args.seed)
+
+     # Train target to one hot representation
+    train_target_oh = sklearn.preprocessing.OneHotEncoder(sparse=False, handle_unknown="ignore").fit_transform(np.reshape(train_target, (-1,1)))
 
     # Generate initial model weights
     weights = [generator.uniform(size=[train_data.shape[1], args.hidden_layer], low=-0.1, high=0.1),
@@ -72,12 +74,12 @@ def main(args: argparse.Namespace) -> tuple[tuple[np.ndarray, ...], list[float]]
         # softmax(z) = softmax(z + any_constant) and compute softmax(z) = softmax(z - maximum_of_z).
         # That way we only exponentiate values which are non-positive, and overflow does not occur.
         
-        hLayer_output = ReLU(inputs @ weights[0] + biases[0])
-        oLayer_output = softmax(hLayer_output @ weights[1] + biases[1])
+        hLayer_output = ReLU(inputs @ weights[0])
+        oLayer_output = softmax(hLayer_output @ weights[1])
         return (hLayer_output, oLayer_output)
 
 
-    for iteration in range(args.iterations):
+    for iteration in range(args.epochs):
         permutation = generator.permutation(train_data.shape[0])
 
         # Process the data in the order of `permutation`.
@@ -87,23 +89,31 @@ def main(args: argparse.Namespace) -> tuple[tuple[np.ndarray, ...], list[float]]
         for batch in range(1, int(batches_count) + 1):
 
             # Gradient
-            gradient_weights_sum = np.zeros(weights.shape)
-            gradient_biases_sum = np.zeros(biases.shape)
+            gradient_sum = np.array([np.zeros(weights[0]), np.zeros(weights[1])])
             
             # For each sample
             for i in range(args.batch_size * (batch - 1), args.batch_size * batch):
                 p = permutation[i]
                 x_i = train_data[p]
-                t_i = train_target[p]
-                activation_result = forward(x_i)
+                t_i = train_target_oh[p] # One-hot represenatation of target data (same size as y-i)
+                
+                # Forward
+                (h_i, y_i) = forward(x_i)
+
+                delta = t_i - y_i
+                g = h_i.reshape(-1, 1) @ delta.reshape(1, -1)
+                gradient_sum[1] += g
+
+                delta = (delta @ weights[1].T)
+                g = (x_i.reshape(-1, 1) @ delta.reshape(1, -1)) * (h_i > 0)
+                gradient_sum[0] += g
+                
             
             # Update weights (both, on hidden and output layer)
-            gradient_weights_avrg = gradient_weights_sum / args.batch_size
-            weights = weights - (args.learning_rate * gradient_weights_avrg)
+            gradient_avrg = gradient_sum / args.batch_size
+            weights[0] = weights[0] - (args.learning_rate * gradient_avrg[0])
+            weights[1] = weights[1] - (args.learning_rate * gradient_avrg[1])
 
-            # Update biases (both, on hidden and output layer)
-            gradient_biases_avrg = gradient_biases_sum / args.batch_size
-            biases = biases - (args.learning_rate * gradient_biases_avrg)
 
 
         # The gradient used in SGD has now four parts, gradient of weights[0] and weights[1]
@@ -119,9 +129,27 @@ def main(args: argparse.Namespace) -> tuple[tuple[np.ndarray, ...], list[float]]
         # - compute the derivative with respect to the hidden layer input
         # - compute the derivative with respect to weights[0] and biases[0]
 
-        # TODO: After the SGD iteration, measure the accuracy for both the
+        #  After the SGD iteration, measure the accuracy for both the
         # train test and the test set.
-        train_accuracy, test_accuracy = None, None
+        train_accuracy, train_loss, test_accuracy, test_loss = 0, 0, 0, 0
+        
+        train_predictions = np.zeros([train_target.shape[0], args.classes])
+        i = 0
+        for x_i in train_data:
+           train_predictions[i] = softmax((x_i.transpose() @ weights))
+           i = i + 1
+        # Compute loss and accuracy (using train_target as NON-one-hot and train_predictions as list of vectors of probabilities)
+        train_loss = sklearn.metrics.log_loss(train_target, train_predictions)
+        train_accuracy = sklearn.metrics.accuracy_score(train_target, np.argmax(train_predictions, axis=1))
+
+        test_predictions = np.zeros([test_target.shape[0], args.classes])
+        i = 0
+        for x_i in test_data:
+           test_predictions[i] = softmax((x_i.transpose() @ weights))
+           i = i + 1
+        # Compute loss and accuracy
+        test_loss = sklearn.metrics.log_loss(test_target, test_predictions)
+        test_accuracy = sklearn.metrics.accuracy_score(test_target, np.argmax(test_predictions, axis=1))
 
         print("After iteration {}: train acc {:.1f}%, test acc {:.1f}%".format(
             iteration + 1, 100 * train_accuracy, 100 * test_accuracy))
