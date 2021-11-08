@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import argparse
 import os
 import urllib.request
@@ -31,7 +30,7 @@ class MNIST:
 
 parser = argparse.ArgumentParser()
 # These arguments will be set appropriately by ReCodEx, even if you change them.
-parser.add_argument("--k", default=1, type=int, help="K nearest neighbors to consider")
+parser.add_argument("--k", default=10, type=int, help="K nearest neighbors to consider")
 parser.add_argument("--p", default=2, type=int, help="Use L_p as distance metric")
 parser.add_argument("--plot", default=False, const=True, nargs="?", type=str, help="Plot the predictions")
 parser.add_argument("--recodex", default=False, action="store_true", help="Running in ReCodEx")
@@ -41,6 +40,21 @@ parser.add_argument("--train_size", default=1000, type=int, help="Train set size
 parser.add_argument("--weights", default="uniform", type=str, help="Weighting to use (uniform/inverse/softmax)")
 # If you add more arguments, ReCodEx will keep them with your default values.
 
+def norm(x, p):
+    return np.power(np.sum(np.power(x, np.ones(x.shape)*p)), (1/p))
+
+def softmax(x):
+    """
+    Computes softmax of x (np array)
+    It's normalized (x - np.max(x))
+    """
+    y = np.exp(x - np.max(x))
+    f_x = y / np.sum(np.exp(x - np.max(x)))
+    return f_x
+
+def sigmoid(x):
+  return 1 / (1 + np.exp(-x))
+
 def main(args: argparse.Namespace) -> float:
     # Load MNIST data, scale it to [0, 1] and split it to train and test.
     mnist = MNIST(data_size=args.train_size + args.test_size)
@@ -48,7 +62,7 @@ def main(args: argparse.Namespace) -> float:
     train_data, test_data, train_target, test_target = sklearn.model_selection.train_test_split(
         mnist.data, mnist.target, test_size=args.test_size, random_state=args.seed)
 
-    # TODO: Generate `test_predictions` with classes predicted for `test_data`.
+    # Generate `test_predictions` with classes predicted for `test_data`.
     #
     # Find `args.k` nearest neighbors, choosing the ones with smallest train_data
     # indices in case of ties. Use the most frequent class (optionally weighted
@@ -64,7 +78,46 @@ def main(args: argparse.Namespace) -> float:
     #
     # If you want to plot misclassified examples, you need to also fill `test_neighbors`
     # with indices of nearest neighbors; but it is not needed for passing in ReCodEx.
-    test_predictions = None
+    
+    test_predictions = np.zeros(test_target.shape)
+
+    # For each test dato
+    for (i, test_i) in enumerate(test_data):
+        # k-nearest
+        k_nearest_dist = np.ones([args.k]) * np.inf
+        k_nearest_target = np.zeros([args.k])
+
+        # Mesaure distance from every train dato
+        for (j, train_j) in enumerate(train_data):
+                        
+            # Compute distance
+            d = norm(train_j - test_i, args.p)
+
+            # K-nearest
+            k_nearest_max_index = np.argmax(k_nearest_dist)
+            if d < k_nearest_dist[k_nearest_max_index]:
+                k_nearest_dist[k_nearest_max_index] = d
+                k_nearest_target[k_nearest_max_index] = train_target[j]
+           
+        if args.weights == "uniform":
+            counts = np.bincount(k_nearest_target.astype(int))
+            test_predictions[i] = np.argmax(counts)
+        elif args.weights == "inverse":
+            probs = np.zeros([train_target_oh.shape[1]])
+            for (k, target_k) in enumerate(k_nearest_target.astype(int)):
+                probs[target_k] = probs[target_k] + (1/k_nearest_dist[k])
+
+            probs = probs / np.linalg.norm(probs, ord=1)
+            test_predictions[i] = np.argmax(probs)
+        elif args.weights == "softmax":
+            probs = np.zeros([train_target_oh.shape[1]])
+           
+            for (k, target_k) in enumerate(k_nearest_target.astype(int)):
+                probs[target_k] = probs[target_k] + (sigmoid(-k_nearest_dist[k]))
+
+            probs = probs / np.linalg.norm(probs, ord=1)
+
+            test_predictions[i] = np.argmax(probs)
 
     accuracy = sklearn.metrics.accuracy_score(test_target, test_predictions)
 
