@@ -62,18 +62,16 @@ def main(args: argparse.Namespace):
         test = types.SimpleNamespace()
        
         if args.test:
-            train.data, test.data, train.target, test.target = sklearn.model_selection.train_test_split(train.data, train.target, test_size=0.3, random_state=42)
-        
-        
+            train.data, test.data, train.target, test.target = sklearn.model_selection.train_test_split(train.data, train.target, test_size=0.2, random_state=42)
        
-        for hls in [100,200,1000]:
-            for mi in [100,1000,5000]:
-                for a in [0.1, 1, 3]: 
+        for hls in [(500,500)]:     # [(100),(100,100),(200),(200,200),(1000),(500,500),(200,200,200,200)]
+            for mi in [5000]:               # [100,1000,5000]
+                for a in [0.1]:             # [0.05,0.1,0.5,1,2]
 
                     model = sklearn.pipeline.Pipeline([
                         ("StandardScaler", sklearn.preprocessing.StandardScaler()),
-                        ("MLP_classifier", sklearn.neural_network.MLPClassifier(hidden_layer_sizes=hls, activation="relu", solver="adam", max_iter=mi, alpha=a, learning_rate="adaptive"))]
-                    )
+                        ("MLP_classifier", sklearn.neural_network.MLPClassifier(hidden_layer_sizes=hls, activation="relu", solver="adam", max_iter=mi, alpha=a, learning_rate="adaptive"))
+                    ])
 
                     # Fit
                     model.fit(train.data, train.target)
