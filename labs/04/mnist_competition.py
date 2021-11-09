@@ -55,6 +55,11 @@ def main(args: argparse.Namespace):
     #print(np.linspace(100, 1000), num=5)
     #print(np.linspace(100, 1000), num=5)
 
+    # Jak to vylepsit?
+    #   * trenovac vic siti
+    #   * zasumet si data (otocit, rozmazat, skalovat...)
+    #       *  nejlepe pro kazdy bacch, epochu
+
     if args.predict is None:
         # We are training a model.
         np.random.seed(args.seed)
