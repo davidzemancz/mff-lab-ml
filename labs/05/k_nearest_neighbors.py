@@ -1,3 +1,6 @@
+# fbc0b6cc-0238-11eb-9574-ea7484399335
+# 7b885094-03f8-11eb-9574-ea7484399335
+
 import argparse
 import os
 import urllib.request
@@ -87,36 +90,41 @@ def main(args: argparse.Namespace) -> float:
         k_nearest_dist = np.ones([args.k]) * np.inf
         k_nearest_target = np.zeros([args.k])
 
-        # Mesaure distance from every train dato
-        for (j, train_j) in enumerate(train_data):
-                        
-            # Compute distance
-            d = norm(train_j - test_i, args.p)
+        dif = train_data.T - test_i.reshape(-1,1)
+        norms = np.linalg.norm(dif, ord=args.p, axis=0)
+        mins_indexes = np.argpartition(norms, args.k)[:args.k]
+        k_nearest_dist = norms[mins_indexes]
+        k_nearest_target = train_target[mins_indexes]
 
-            # K-nearest
-            k_nearest_max_index = np.argmax(k_nearest_dist)
-            if d < k_nearest_dist[k_nearest_max_index]:
-                k_nearest_dist[k_nearest_max_index] = d
-                k_nearest_target[k_nearest_max_index] = train_target[j]
+        # Mesaure distance from every train dato
+        #for (j, train_j) in enumerate(train_data):
+        #                
+        #    # Compute distance
+        #    d = norm(train_j - test_i, args.p)#
+        #
+        #    # K-nearest
+        #    k_nearest_max_index = np.argmax(k_nearest_dist)
+        #    if d < k_nearest_dist[k_nearest_max_index]:
+        #        k_nearest_dist[k_nearest_max_index] = d
+        #        k_nearest_target[k_nearest_max_index] = train_target[j]
            
         if args.weights == "uniform":
             counts = np.bincount(k_nearest_target.astype(int))
             test_predictions[i] = np.argmax(counts)
         elif args.weights == "inverse":
-            probs = np.zeros([train_target_oh.shape[1]])
+            probs = np.zeros([10])
             for (k, target_k) in enumerate(k_nearest_target.astype(int)):
                 probs[target_k] = probs[target_k] + (1/k_nearest_dist[k])
 
             probs = probs / np.linalg.norm(probs, ord=1)
             test_predictions[i] = np.argmax(probs)
         elif args.weights == "softmax":
-            probs = np.zeros([train_target_oh.shape[1]])
+            probs = np.zeros([10])
            
             for (k, target_k) in enumerate(k_nearest_target.astype(int)):
                 probs[target_k] = probs[target_k] + (sigmoid(-k_nearest_dist[k]))
 
             probs = probs / np.linalg.norm(probs, ord=1)
-
             test_predictions[i] = np.argmax(probs)
 
     accuracy = sklearn.metrics.accuracy_score(test_target, test_predictions)
