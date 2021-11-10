@@ -46,62 +46,74 @@ parser.add_argument("--seed", default=42, type=int, help="Random seed")
 parser.add_argument("--model_path", default="diacritization.model", type=str, help="Model path")
 parser.add_argument("--test", default=False, type=bool, help="Test flag")
 
-def create_features(data, span = 3):
+features_span = 4
+features_mid = features_span
+
+def create_features(data, span = 3, conversion = None):
+    data_f = []
     for (i, dato) in enumerate(data):
-        vect = np.zeros([2*span+2])
-        k = 0
+        vect = [0] * (2*span+1)
+        k = -1
         for j in range(i - span, i + span + 1):
-            if j < 0 or j >= len(data): continue 
-            vect[k] = data[j]
             k = k + 1
-        data_f = vect
+            if j < 0 or j >= len(data): continue
+            if conversion is not None: vect[k] = conversion(data[j])
+            else: vect[k] = data[j]
+        data_f.append(vect)
     return data_f
     
+def select_data(source, letter, letter_variants):
+    temp_data = []
+    temp_target = []
+    for (i, dato) in enumerate(source.data):
+        if dato[features_mid] == ord(letter):
+            temp_data.append(dato)
+            temp_target.append(source.target[i])
+    source.data = np.array(temp_data)
+    source.target = np.array(temp_target)
+
+    source.target = sklearn.preprocessing.OneHotEncoder(sparse=False, handle_unknown="ignore").fit_transform(np.reshape(source.target, (-1,1)))
+
+    return source
 
 def main(args: argparse.Namespace):
-
-    print(create_features([[0],[1],[2],[3]], span=1))
-
-    return
 
     if args.predict is None:
         # We are training a model.
         np.random.seed(args.seed)
         train = Dataset()
         test = types.SimpleNamespace()
-       
+
         if args.test:
-            size = len(train.data) // 2
-            train.data, test.data, train.target, test.target = train.data[:size], train.data[size+1:], train.target[:size], train.target[size+1:]
+            size = len(train.data) // 3
+            train.data, test.data, train.target, test.target =  train.data[size+1:], train.data[:size], train.target[size+1:], train.target[:size]
 
-        temp_data = np.zeros((len(train.data), 5))
-        temp_target = np.zeros((len(train.data),2))
-        k = 0
-        for (i, dato) in enumerate(train.data):
-            if train.data[i].lower() == "a":
-                k = k + 1
-                temp_data[k] = np.array([ord(train.data[i - 2]) if i - 2 >= 0 else 0, ord(train.data[i - 1])  if i - 1 >= 0 else 0, ord(train.data[i]), ord(train.data[i + 1]) if i + 1 < len(train.data) else 0, ord(train.data[i + 2])  if i + 2 < len(train.data) else 0])
-                oh = [1,0] if train.target[i] == "a" else [0,1]
-                temp_target[k] = np.array(oh)
-        train.data = temp_data[:k]
-        train.target = temp_target[:k]
+        train.data = train.data.lower()
+        train.target = train.target.lower()
 
+        test.data = test.data.lower()
+        test.target = test.target.lower()
 
-        temp_data = np.zeros((len(test.data), 5))
-        temp_target = np.zeros((len(test.data),2))
-        k = 0
-        for (i, dato) in enumerate(test.data):
-            if test.data[i].lower() == "a":
-                k = k + 1
-                temp_data[k] = np.array([ord(test.data[i - 2]) if i - 2 >= 0 else 0, ord(test.data[i - 1])  if i - 1 >= 0 else 0, ord(test.data[i]), ord(test.data[i + 1]) if i + 1 < len(test.data) else 0, ord(test.data[i + 2])  if i + 2 < len(test.data) else 0])
-                oh = [1,0] if test.target[i] == "a" else [0,1]
-                temp_target[k] = np.array(oh)
-        test.data = temp_data[:k]
-        test.target = temp_target[:k]
+        train_orig = types.SimpleNamespace()
+        train_orig.data = test.data
+        train_orig.target =  test.target
+
+        train.data = create_features(train.data, span=features_span, conversion=ord)
+        train.target = [ord(t) for t in train.target]
+
+        test.data = create_features(test.data, span=features_span, conversion=ord)
+        test.target = [ord(t) for t in test.target]
+
+        letter = "e"
+        letter_variants = "eéě"
+
+        select_data(train, letter, letter_variants)
+        select_data(test, letter, letter_variants)
 
         model = sklearn.pipeline.Pipeline([
                 ("StandardScaler", sklearn.preprocessing.StandardScaler()),
-                ("MLP_classifier", sklearn.neural_network.MLPClassifier(hidden_layer_sizes=(500), activation="relu", solver="adam", max_iter=1000, alpha=0.1, learning_rate="adaptive"))
+                ("PolynomialFeature", sklearn.preprocessing.PolynomialFeatures(3, include_bias=True)),
+                ("MLP_classifier", sklearn.neural_network.MLPClassifier(hidden_layer_sizes=(100, 100, 100), activation="relu", solver="adam", max_iter=1000, alpha=0.1, learning_rate="adaptive"))
             ])
 
         # Fit
@@ -110,6 +122,20 @@ def main(args: argparse.Namespace):
         test_predictions = model.predict_proba(test.data)
         test_accuracy = sklearn.metrics.accuracy_score(np.argmax(test.target,axis=1), np.argmax(test_predictions,axis=1))
         print("TEST","Acc:",test_accuracy)
+
+        test_predictions = np.argmax(test_predictions, axis=1)
+
+        train_pred = train_orig
+        train_pred.data = list(train_pred.data)
+
+        k = 0
+        for (i, l) in enumerate(train_pred.data):
+            if l == letter:
+                train_pred.data[i] = letter_variants[test_predictions[k]]
+                k = k + 1
+
+        print("".join(train_pred.target[:200]))
+        print("".join(train_pred.data[:200]))
 
         # Serialize the model.
         with lzma.open(args.model_path, "wb") as model_file:
