@@ -113,7 +113,7 @@ def main(args: argparse.Namespace):
         model = sklearn.pipeline.Pipeline([
                 ("StandardScaler", sklearn.preprocessing.StandardScaler()),
                 ("PolynomialFeature", sklearn.preprocessing.PolynomialFeatures(3, include_bias=True)),
-                ("MLP_classifier", sklearn.neural_network.MLPClassifier(hidden_layer_sizes=(100, 100, 100), activation="relu", solver="adam", max_iter=1000, alpha=0.1, learning_rate="adaptive"))
+                ("MLP_classifier", sklearn.neural_network.MLPClassifier(hidden_layer_sizes=(100), activation="relu", solver="adam", max_iter=100, alpha=0.1, learning_rate="adaptive"))
             ])
 
         # Fit
