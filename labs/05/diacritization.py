@@ -46,9 +46,11 @@ parser.add_argument("--seed", default=42, type=int, help="Random seed")
 parser.add_argument("--model_path", default="diacritization.model", type=str, help="Model path")
 parser.add_argument("--test", default=False, type=bool, help="Test flag")
 
-features_span = 4
+# Settings
+features_span = 5
 features_mid = features_span
 
+# Create features (vector of ord of letter and ords of nearby ones)
 def create_features(data, span = 3, conversion = None):
     data_f = []
     for (i, dato) in enumerate(data):
@@ -61,20 +63,23 @@ def create_features(data, span = 3, conversion = None):
             else: vect[k] = data[j]
         data_f.append(vect)
     return data_f
-    
+
+# Select just data with desired letter
 def select_data(source, letter, letter_variants):
+    result = types.SimpleNamespace()
+
     temp_data = []
     temp_target = []
     for (i, dato) in enumerate(source.data):
         if dato[features_mid] == ord(letter):
             temp_data.append(dato)
             temp_target.append(source.target[i])
-    source.data = np.array(temp_data)
-    source.target = np.array(temp_target)
+    result.data = np.array(temp_data)
+    result.target = np.array(temp_target)
 
-    source.target = sklearn.preprocessing.OneHotEncoder(sparse=False, handle_unknown="ignore").fit_transform(np.reshape(source.target, (-1,1)))
+    result.target = sklearn.preprocessing.OneHotEncoder(sparse=False, handle_unknown="ignore").fit_transform(np.reshape(result.target, (-1,1)))
 
-    return source
+    return result
 
 def main(args: argparse.Namespace):
 
@@ -84,62 +89,84 @@ def main(args: argparse.Namespace):
         train = Dataset()
         test = types.SimpleNamespace()
 
+        # Split data for testing
         if args.test:
             size = len(train.data) // 3
             train.data, test.data, train.target, test.target =  train.data[size+1:], train.data[:size], train.target[size+1:], train.target[:size]
 
+        # Normalize data
         train.data = train.data.lower()
         train.target = train.target.lower()
 
-        test.data = test.data.lower()
-        test.target = test.target.lower()
-
-        train_orig = types.SimpleNamespace()
-        train_orig.data = test.data
-        train_orig.target =  test.target
-
+        # Create data features
         train.data = create_features(train.data, span=features_span, conversion=ord)
         train.target = [ord(t) for t in train.target]
 
-        test.data = create_features(test.data, span=features_span, conversion=ord)
-        test.target = [ord(t) for t in test.target]
+        # Normalize and store original data and create features for testing
+        if args.test:
+            test.data = test.data.lower()
+            test.target = test.target.lower()
+        
+            test_orig = types.SimpleNamespace()
+            test_orig.data = test.data
+            test_orig.target =  test.target
 
-        letter = "e"
-        letter_variants = "eéě"
+            test.data = create_features(test.data, span=features_span, conversion=ord)
+            test.target = [ord(t) for t in test.target]
 
-        select_data(train, letter, letter_variants)
-        select_data(test, letter, letter_variants)
+        # Dic of letters and its variants
+        letters = { "a":"aá", "c":"cč", "d":"dď", "e":"eéě", "i":"ií", "n":"nň", "o":"oó", "r":"rř", "s":"sš", "t":"tť", "u":"uúů", "y":"yý", "z":"zž" }
+        acc_total = 0
 
-        model = sklearn.pipeline.Pipeline([
-                ("StandardScaler", sklearn.preprocessing.StandardScaler()),
-                ("PolynomialFeature", sklearn.preprocessing.PolynomialFeatures(3, include_bias=True)),
-                ("MLP_classifier", sklearn.neural_network.MLPClassifier(hidden_layer_sizes=(100), activation="relu", solver="adam", max_iter=100, alpha=0.1, learning_rate="adaptive"))
-            ])
+        # Letter to predict and its variants
+        for letter in letters:
+            letter_variants = letters[letter]
 
-        # Fit
-        model.fit(train.data, train.target)
+            # Select just data with desired letter
+            train_s = select_data(train, letter, letter_variants)
+            if args.test:
+                test_s = select_data(test, letter, letter_variants)
 
-        test_predictions = model.predict_proba(test.data)
-        test_accuracy = sklearn.metrics.accuracy_score(np.argmax(test.target,axis=1), np.argmax(test_predictions,axis=1))
-        print("TEST","Acc:",test_accuracy)
+            # Create model
+            model = sklearn.pipeline.Pipeline([
+                    ("StandardScaler", sklearn.preprocessing.StandardScaler()),
+                    ("PolynomialFeature", sklearn.preprocessing.PolynomialFeatures(3, include_bias=True)),
+                    ("MLP_classifier", sklearn.neural_network.MLPClassifier(hidden_layer_sizes=(100, 100, 100), activation="relu", solver="adam", max_iter=1000, alpha=0.1, learning_rate="adaptive"))
+                ])
 
-        test_predictions = np.argmax(test_predictions, axis=1)
+            # Fit
+            model.fit(train_s.data, train_s.target)
 
-        train_pred = train_orig
-        train_pred.data = list(train_pred.data)
+            # Predict probabs for testing
+            if args.test:
+                print("------", letter, "------")
 
-        k = 0
-        for (i, l) in enumerate(train_pred.data):
-            if l == letter:
-                train_pred.data[i] = letter_variants[test_predictions[k]]
-                k = k + 1
+                test_predictions = model.predict_proba(test_s.data)
+                test_accuracy = sklearn.metrics.accuracy_score(np.argmax(test_s.target,axis=1), np.argmax(test_predictions,axis=1))
+                print("TEST","Acc:",test_accuracy)
+                acc_total = acc_total + test_accuracy
 
-        print("".join(train_pred.target[:200]))
-        print("".join(train_pred.data[:200]))
+                # Get max prob
+                test_predictions = np.argmax(test_predictions, axis=1)
 
-        # Serialize the model.
-        with lzma.open(args.model_path, "wb") as model_file:
-            pickle.dump(model, model_file)
+                # Recerate original data
+                test_orig.data = list(test_orig.data)
+                k = 0
+                for (i, l) in enumerate(test_orig.data):
+                    if l == letter:
+                        test_orig.data[i] = letter_variants[test_predictions[k]]
+                        k = k + 1
+
+                print("".join(test_orig.target[:200]))
+                print("".join(test_orig.data[:200]))
+
+        if args.test:
+             print("TEST TOTAL Acc:", acc_total / len(letters))
+
+        # Serialize the model if not testing
+        if not args.test:
+            with lzma.open(args.model_path, "wb") as model_file:
+                pickle.dump(model, model_file)
 
     else:
         # Use the model and return test set predictions.
