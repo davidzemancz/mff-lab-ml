@@ -47,7 +47,7 @@ parser.add_argument("--model_path", default="diacritization.model", type=str, he
 parser.add_argument("--test", default=False, type=bool, help="Test flag")
 
 # Settings
-features_span = 5
+features_span = 4
 features_mid = features_span
 
 # Create features (vector of ord of letter and ords of nearby ones)
@@ -59,8 +59,12 @@ def create_features(data, span = 3, conversion = None):
         for j in range(i - span, i + span + 1):
             k = k + 1
             if j < 0 or j >= len(data): continue
-            if conversion is not None: vect[k] = conversion(data[j])
+            elif conversion is not None: vect[k] = conversion(data[j])
             else: vect[k] = data[j]
+
+            #dist = abs(j - i) if j - i != 0 else 1
+            #vect[k] = vect[k] * (1/dist)
+
         data_f.append(vect)
     return data_f
 
@@ -111,6 +115,8 @@ def main(args: argparse.Namespace):
             test_orig.data = test.data
             test_orig.target =  test.target
 
+            test_result = list(test.data)
+
             test.data = create_features(test.data, span=features_span, conversion=ord)
             test.target = [ord(t) for t in test.target]
 
@@ -130,8 +136,8 @@ def main(args: argparse.Namespace):
             # Create model
             model = sklearn.pipeline.Pipeline([
                     ("StandardScaler", sklearn.preprocessing.StandardScaler()),
-                    ("PolynomialFeature", sklearn.preprocessing.PolynomialFeatures(3, include_bias=True)),
-                    ("MLP_classifier", sklearn.neural_network.MLPClassifier(hidden_layer_sizes=(100, 100, 100), activation="relu", solver="adam", max_iter=1000, alpha=0.1, learning_rate="adaptive"))
+                    ("PolynomialFeature", sklearn.preprocessing.PolynomialFeatures(4, include_bias=True)),
+                    ("MLP_classifier", sklearn.neural_network.MLPClassifier(hidden_layer_sizes=(500), activation="relu", solver="adam", max_iter=1000, alpha=0.1, learning_rate="adaptive"))
                 ])
 
             # Fit
@@ -150,18 +156,27 @@ def main(args: argparse.Namespace):
                 test_predictions = np.argmax(test_predictions, axis=1)
 
                 # Recerate original data
-                test_orig.data = list(test_orig.data)
                 k = 0
-                for (i, l) in enumerate(test_orig.data):
+                for (i, l) in enumerate(test_result):
                     if l == letter:
-                        test_orig.data[i] = letter_variants[test_predictions[k]]
+                        test_result[i] = letter_variants[test_predictions[k]]
                         k = k + 1
 
-                print("".join(test_orig.target[:200]))
-                print("".join(test_orig.data[:200]))
+                #print("".join(test_orig.target[:200]))
+                #print("".join(test_result[:200]))
+
 
         if args.test:
-             print("TEST TOTAL Acc:", acc_total / len(letters))
+            total = 0
+            correct = 0
+            for (i, letter) in enumerate(test_orig.data):
+                if letter in letters:
+                    total = total + 1
+                    if test_result[i] == test_orig.target[i]:
+                        correct = correct + 1
+        
+        if args.test:
+             print("TEST TOTAL Acc:", correct / total)
 
         # Serialize the model if not testing
         if not args.test:
