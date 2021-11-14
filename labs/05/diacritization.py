@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import argparse
 import lzma
 import pickle
@@ -16,6 +15,7 @@ import sklearn.metrics
 import sklearn.pipeline
 import sklearn.preprocessing
 import sklearn.neural_network
+from joblib import parallel_backend
 
 class Dataset:
     LETTERS_NODIA = "acdeeinorstuuyz"
@@ -47,8 +47,10 @@ parser.add_argument("--model_path", default="diacritization.model", type=str, he
 parser.add_argument("--test", default=False, type=bool, help="Test flag")
 
 # Settings
-features_span = 4
+features_span = 3
 features_mid = features_span
+letters = { "a":"aá", "c":"cč", "d":"dď", "e":"eéě", "i":"ií", "n":"nň", "o":"oó", "r":"rř", "s":"sš", "t":"tť", "u":"uúů", "y":"yý", "z":"zž" }
+alphabet = list("aábcčdďeéěfghiíjklmnňoópqrřsštťuúůvwxyýzž")
 
 # Create features (vector of ord of letter and ords of nearby ones)
 def create_features(data, span = 3, conversion = None):
@@ -95,7 +97,7 @@ def main(args: argparse.Namespace):
 
         # Split data for testing
         if args.test:
-            size = len(train.data) // 3
+            size = len(train.data) // 2
             train.data, test.data, train.target, test.target =  train.data[size+1:], train.data[:size], train.target[size+1:], train.target[:size]
 
         # Normalize data
@@ -104,6 +106,7 @@ def main(args: argparse.Namespace):
 
         # Create data features
         train.data = create_features(train.data, span=features_span, conversion=ord)
+        #train.data = create_features_oh(train.data)
         train.target = [ord(t) for t in train.target]
 
         # Normalize and store original data and create features for testing
@@ -118,31 +121,45 @@ def main(args: argparse.Namespace):
             test_result = list(test.data)
 
             test.data = create_features(test.data, span=features_span, conversion=ord)
+            #test.data = create_features_oh(test.data)
             test.target = [ord(t) for t in test.target]
 
         # Dic of letters and its variants
-        letters = { "a":"aá", "c":"cč", "d":"dď", "e":"eéě", "i":"ií", "n":"nň", "o":"oó", "r":"rř", "s":"sš", "t":"tť", "u":"uúů", "y":"yý", "z":"zž" }
         acc_total = 0
 
+        model_dic = {}
         # Letter to predict and its variants
         for letter in letters:
             letter_variants = letters[letter]
 
             # Select just data with desired letter
             train_s = select_data(train, letter, letter_variants)
+            #train_s = select_data_oh(train, letter)
             if args.test:
                 test_s = select_data(test, letter, letter_variants)
+                #test_s = select_data_oh(test, letter)
 
             # Create model
-            model = sklearn.pipeline.Pipeline([
+            print("------", letter, "------")
+            model = sklearn.pipeline.Pipeline(steps = [
+                    ("PolynomialFeatures", sklearn.preprocessing.PolynomialFeatures(2, include_bias=True, interaction_only=True)),
                     ("StandardScaler", sklearn.preprocessing.StandardScaler()),
-                    ("PolynomialFeature", sklearn.preprocessing.PolynomialFeatures(4, include_bias=True)),
-                    ("MLP_classifier", sklearn.neural_network.MLPClassifier(hidden_layer_sizes=(500), activation="relu", solver="adam", max_iter=1000, alpha=0.1, learning_rate="adaptive"))
+                    #("OneHotEncoder", sklearn.preprocessing.OneHotEncoder(categories="auto", sparse=False, handle_unknown="ignore")),
+                    ("MLPClassifier", sklearn.neural_network.MLPClassifier(hidden_layer_sizes=(100), activation="relu", solver="adam", max_iter=200, alpha=0.1, learning_rate="adaptive"))
                 ])
 
             # Fit
             model.fit(train_s.data, train_s.target)
 
+            # Reduce model size
+            mlp = model.get_params()["steps"][-1][1]
+            mlp._optimizer = None
+            for i in range(len(mlp.coefs_)): mlp.coefs_[i] = mlp.coefs_[i].astype(np.float16)
+            for i in range(len(mlp.intercepts_)): mlp.intercepts_[i] = mlp.intercepts_[i].astype(np.float16)
+
+            # Store model in dic
+            model_dic[letter] = model
+            
             # Predict probabs for testing
             if args.test:
                 print("------", letter, "------")
@@ -178,21 +195,84 @@ def main(args: argparse.Namespace):
         if args.test:
              print("TEST TOTAL Acc:", correct / total)
 
-        # Serialize the model if not testing
+        # Serialize the model_dic if not testing
         if not args.test:
             with lzma.open(args.model_path, "wb") as model_file:
-                pickle.dump(model, model_file)
+                pickle.dump(model_dic, model_file)
 
     else:
-        # Use the model and return test set predictions.
-        test = Dataset(args.predict)
+        if args.test:
+            train = Dataset()
+            test = types.SimpleNamespace()
+            test_orig = types.SimpleNamespace()
 
+            size = len(train.data) // 2
+            train.data, test.data, train.target, test.target =  train.data[size+1:], train.data[:size], train.target[size+1:], train.target[:size]
+
+            test_orig.data = test.data
+            test_orig.target =  test.target
+        else:
+            test = Dataset(args.predict)
+
+        # Prepare data for result
+        test_result = list(test.data)
+
+        # Normalize data
+        test.data = test.data.lower()
+        test.target = test.target.lower()
+
+        # Create features
+        test.data = create_features(test.data, span=features_span, conversion=ord)
+        test.target = [ord(t) for t in test.target]
+
+        # Load dic of models (letter is key)
         with lzma.open(args.model_path, "rb") as model_file:
-            model = pickle.load(model_file)
+            model_dic = pickle.load(model_file)
 
-        # TODO: Generate `predictions` with the test set predictions. Specifically,
+        for letter in letters:
+            letter_variants = letters[letter]
+
+            # Select just data with desired letter
+            test_s = select_data(test, letter, letter_variants)
+
+            # Get model for letter
+            model = model_dic[letter]
+
+            # Predict and get max prob
+            test_predictions = model.predict_proba(test_s.data)
+            test_predictions = np.argmax(test_predictions, axis=1)
+
+            # Recerate original data
+            k = 0
+            for (i, l) in enumerate(test_result):
+                if l == letter:
+                    test_result[i] = letter_variants[test_predictions[k]]
+                    k = k + 1
+                elif l == letter.upper():
+                    test_result[i] = letter_variants[test_predictions[k]].upper()
+                    k = k + 1
+
+
+        # Generate `predictions` with the test set predictions. Specifically,
         # produce a diacritized `str` with exactly the same number of words as `test.data`.
-        predictions = None
+        predictions = "".join(test_result)
+
+        if args.test:
+            total = 0
+            correct = 0
+            for (i, letter) in enumerate(test_orig.data):
+                if letter in letters:
+                    total = total + 1
+                    if test_result[i] == test_orig.target[i]:
+                        correct = correct + 1
+
+            #print("".join(test_orig.target[:200]))
+            #print("".join(test_result[:200]))
+
+            print("TEST TOTAL Acc:", correct / total)
+
+       
+
 
         return predictions
 
