@@ -145,7 +145,7 @@ def main(args: argparse.Namespace):
                     ("PolynomialFeatures", sklearn.preprocessing.PolynomialFeatures(2, include_bias=True, interaction_only=True)),
                     #("StandardScaler", sklearn.preprocessing.StandardScaler()),
                     ("OneHotEncoder", sklearn.preprocessing.OneHotEncoder(categories="auto", sparse=True, handle_unknown="ignore", drop="first")),
-                    ("MLPClassifier", sklearn.neural_network.MLPClassifier(hidden_layer_sizes=(50), activation="relu", solver="adam", max_iter=200, alpha=0.1, learning_rate="adaptive", verbose=True))
+                    ("MLPClassifier", sklearn.neural_network.MLPClassifier(hidden_layer_sizes=(50), activation="relu", solver="adam", max_iter=200, alpha=0.1, learning_rate="adaptive", tol=0.001, verbose=True))
                 ])
 
             # Fit
