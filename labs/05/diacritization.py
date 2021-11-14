@@ -143,9 +143,9 @@ def main(args: argparse.Namespace):
             print("------", letter, "------")
             model = sklearn.pipeline.Pipeline(steps = [
                     ("PolynomialFeatures", sklearn.preprocessing.PolynomialFeatures(2, include_bias=True, interaction_only=True)),
-                    ("StandardScaler", sklearn.preprocessing.StandardScaler()),
-                    #("OneHotEncoder", sklearn.preprocessing.OneHotEncoder(categories="auto", sparse=False, handle_unknown="ignore")),
-                    ("MLPClassifier", sklearn.neural_network.MLPClassifier(hidden_layer_sizes=(100), activation="relu", solver="adam", max_iter=200, alpha=0.1, learning_rate="adaptive"))
+                    #("StandardScaler", sklearn.preprocessing.StandardScaler()),
+                    ("OneHotEncoder", sklearn.preprocessing.OneHotEncoder(categories="auto", sparse=True, handle_unknown="ignore", drop="first")),
+                    ("MLPClassifier", sklearn.neural_network.MLPClassifier(hidden_layer_sizes=(50), activation="relu", solver="adam", max_iter=200, alpha=0.1, learning_rate="adaptive", verbose=True))
                 ])
 
             # Fit
