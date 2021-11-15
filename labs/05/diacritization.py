@@ -11,6 +11,7 @@ import sklearn.compose
 import sklearn.datasets
 import sklearn.model_selection
 import sklearn.linear_model
+import sklearn.feature_selection
 import sklearn.metrics
 import sklearn.pipeline
 import sklearn.preprocessing
@@ -47,31 +48,68 @@ parser.add_argument("--model_path", default="diacritization.model", type=str, he
 parser.add_argument("--test", default=False, type=bool, help="Test flag")
 
 # Settings
-features_span = 3
+features_span = 4
 features_mid = features_span
 letters = { "a":"aá", "c":"cč", "d":"dď", "e":"eéě", "i":"ií", "n":"nň", "o":"oó", "r":"rř", "s":"sš", "t":"tť", "u":"uúů", "y":"yý", "z":"zž" }
 alphabet = list("aábcčdďeéěfghiíjklmnňoópqrřsštťuúůvwxyýzž")
 
-# Create features (vector of ord of letter and ords of nearby ones)
-def create_features(data, span = 3, conversion = None):
+# Create one-hot features (one-hot vector of ord of letter and ords of nearby ones as indexies)
+def create_features_oh(data, span = 3, conversion = None):
     data_f = []
     for (i, dato) in enumerate(data):
-        vect = [0] * (2*span+1)
+        vect = np.zeros([400]) #[0] * 400 #(2*span+1)
+        vect[0] = conversion(data[i])
+        for j in range(i - span, i + span + 1):
+            dist = abs(j - i) if j - i != 0 else 1
+
+            if j < 0 or j >= len(data): continue
+            elif conversion is not None: vect[conversion(data[j])] = 1/dist
+            else: vect[data[j]] = 1/dist
+
+        data_f.append(vect)
+    return np.array(data_f)
+
+# Create features (vector of ord of letter and ords of nearby ones)
+def create_features(data, span = 3, conversion = None):
+    return create_features_oh(data, span, conversion)
+    
+    data_f = []
+    for (i, dato) in enumerate(data):
+        vect = np.zeros([400]) #[0] * 400 #(2*span+1)
         k = -1
+        vect[0] = conversion(data[i])
         for j in range(i - span, i + span + 1):
             k = k + 1
+
             if j < 0 or j >= len(data): continue
             elif conversion is not None: vect[k] = conversion(data[j])
             else: vect[k] = data[j]
 
-            #dist = abs(j - i) if j - i != 0 else 1
-            #vect[k] = vect[k] * (1/dist)
-
         data_f.append(vect)
-    return data_f
+    return np.array(data_f)
+
+# Select just data with desired letter form one-hot
+def select_data_oh(source, letter, letter_variants):
+    result = types.SimpleNamespace()
+
+    temp_data = []
+    temp_target = []
+    for (i, dato) in enumerate(source.data):
+        if dato[0] == ord(letter):
+            dato[0] = 0
+            temp_data.append(dato)
+            temp_target.append(source.target[i])
+    result.data = np.array(temp_data)
+    result.target = np.array(temp_target)
+
+    result.target = sklearn.preprocessing.OneHotEncoder(sparse=False, handle_unknown="ignore").fit_transform(np.reshape(result.target, (-1,1)))
+
+    return result
 
 # Select just data with desired letter
 def select_data(source, letter, letter_variants):
+    return select_data_oh(source, letter, letter_variants)
+    
     result = types.SimpleNamespace()
 
     temp_data = []
@@ -82,7 +120,7 @@ def select_data(source, letter, letter_variants):
             temp_target.append(source.target[i])
     result.data = np.array(temp_data)
     result.target = np.array(temp_target)
-
+    
     result.target = sklearn.preprocessing.OneHotEncoder(sparse=False, handle_unknown="ignore").fit_transform(np.reshape(result.target, (-1,1)))
 
     return result
@@ -134,18 +172,17 @@ def main(args: argparse.Namespace):
 
             # Select just data with desired letter
             train_s = select_data(train, letter, letter_variants)
-            #train_s = select_data_oh(train, letter)
             if args.test:
                 test_s = select_data(test, letter, letter_variants)
-                #test_s = select_data_oh(test, letter)
 
             # Create model
             print("------", letter, "------")
             model = sklearn.pipeline.Pipeline(steps = [
-                    ("PolynomialFeatures", sklearn.preprocessing.PolynomialFeatures(2, include_bias=True, interaction_only=True)),
+                    #("PolynomialFeatures", sklearn.preprocessing.PolynomialFeatures(2, include_bias=True, interaction_only=True)),
                     #("StandardScaler", sklearn.preprocessing.StandardScaler()),
-                    ("OneHotEncoder", sklearn.preprocessing.OneHotEncoder(categories="auto", sparse=True, handle_unknown="ignore", drop="first")),
-                    ("MLPClassifier", sklearn.neural_network.MLPClassifier(hidden_layer_sizes=(50), activation="relu", solver="adam", max_iter=200, alpha=0.1, learning_rate="adaptive", tol=0.001, verbose=True))
+                    #("OneHotEncoder", sklearn.preprocessing.OneHotEncoder(categories="auto", sparse=True, handle_unknown="ignore", drop="first")),
+                    #("VarianceThreshold", sklearn.feature_selection.VarianceThreshold()),
+                    ("MLPClassifier", sklearn.neural_network.MLPClassifier(hidden_layer_sizes=(100), activation="relu", solver="adam", max_iter=50, alpha=0.1, learning_rate="adaptive", tol=0.001, verbose=True))
                 ])
 
             # Fit
