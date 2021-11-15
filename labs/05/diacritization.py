@@ -1,3 +1,6 @@
+# fbc0b6cc-0238-11eb-9574-ea7484399335
+# 7b885094-03f8-11eb-9574-ea7484399335
+
 import argparse
 import lzma
 import pickle
@@ -48,7 +51,7 @@ parser.add_argument("--model_path", default="diacritization.model", type=str, he
 parser.add_argument("--test", default=False, type=bool, help="Test flag")
 
 # Settings
-features_span = 4
+features_span = 3
 features_mid = features_span
 letters = { "a":"aá", "c":"cč", "d":"dď", "e":"eéě", "i":"ií", "n":"nň", "o":"oó", "r":"rř", "s":"sš", "t":"tť", "u":"uúů", "y":"yý", "z":"zž" }
 alphabet = list("aábcčdďeéěfghiíjklmnňoópqrřsštťuúůvwxyýzž")
@@ -71,11 +74,11 @@ def create_features_oh(data, span = 3, conversion = None):
 
 # Create features (vector of ord of letter and ords of nearby ones)
 def create_features(data, span = 3, conversion = None):
-    return create_features_oh(data, span, conversion)
+    #return create_features_oh(data, span, conversion)
     
     data_f = []
     for (i, dato) in enumerate(data):
-        vect = np.zeros([400]) #[0] * 400 #(2*span+1)
+        vect = [0] * (2*span+1)
         k = -1
         vect[0] = conversion(data[i])
         for j in range(i - span, i + span + 1):
@@ -108,7 +111,7 @@ def select_data_oh(source, letter, letter_variants):
 
 # Select just data with desired letter
 def select_data(source, letter, letter_variants):
-    return select_data_oh(source, letter, letter_variants)
+    #return select_data_oh(source, letter, letter_variants)
     
     result = types.SimpleNamespace()
 
@@ -176,13 +179,13 @@ def main(args: argparse.Namespace):
                 test_s = select_data(test, letter, letter_variants)
 
             # Create model
-            print("------", letter, "------")
+            if not args.test: print("------", letter, "------")
             model = sklearn.pipeline.Pipeline(steps = [
-                    #("PolynomialFeatures", sklearn.preprocessing.PolynomialFeatures(2, include_bias=True, interaction_only=True)),
                     #("StandardScaler", sklearn.preprocessing.StandardScaler()),
-                    #("OneHotEncoder", sklearn.preprocessing.OneHotEncoder(categories="auto", sparse=True, handle_unknown="ignore", drop="first")),
-                    #("VarianceThreshold", sklearn.feature_selection.VarianceThreshold()),
-                    ("MLPClassifier", sklearn.neural_network.MLPClassifier(hidden_layer_sizes=(100), activation="relu", solver="adam", max_iter=50, alpha=0.1, learning_rate="adaptive", tol=0.001, verbose=True))
+                    ("OneHotEncoder", sklearn.preprocessing.OneHotEncoder(categories="auto", sparse=True, handle_unknown="ignore", drop="first")),
+                    ("PolynomialFeatures", sklearn.preprocessing.PolynomialFeatures(2, include_bias=True, interaction_only=True)),
+                    ("VarianceThreshold", sklearn.feature_selection.VarianceThreshold()),
+                    ("MLPClassifier", sklearn.neural_network.MLPClassifier(hidden_layer_sizes=(20), activation="relu", solver="adam", max_iter=20, alpha=0.1, learning_rate="adaptive", tol=0.001, verbose=False))
                 ])
 
             # Fit
