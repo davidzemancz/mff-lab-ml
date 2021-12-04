@@ -1,10 +1,11 @@
-#!/usr/bin/env python3
 import argparse
 
 import numpy as np
 import sklearn.datasets
 import sklearn.metrics
 import sklearn.model_selection
+
+import smo_algorithm
 
 parser = argparse.ArgumentParser()
 # These arguments will be set appropriately by ReCodEx, even if you change them.
@@ -22,16 +23,16 @@ parser.add_argument("--tolerance", default=1e-7, type=float, help="Default toler
 # If you add more arguments, ReCodEx will keep them with your default values.
 
 def kernel(args: argparse.Namespace, x: np.ndarray, y: np.ndarray) -> np.ndarray:
-    # TODO: Use the kernel from the smo_algorithm assignment.
-    raise NotImplementedError()
+    # Use the kernel from the smo_algorithm assignment.
+    return smo_algorithm.kernel(args, x, y)
 
 def smo(
     args: argparse.Namespace,
     train_data: np.ndarray, train_target: np.ndarray,
     test_data: np.ndarray, test_target: np.ndarray
 ) -> tuple[np.ndarray, np.ndarray, float, list[float], list[float]]:
-    # TODO: Use the SMO algorithm from the smo_algorithm assignment.
-    raise NotImplementedError()
+    # Use the SMO algorithm from the smo_algorithm assignment.
+    return smo_algorithm.smo(args, train_data, train_target, test_data, test_target)
 
 def main(args: argparse.Namespace) -> float:
     # Use the digits dataset.
@@ -42,9 +43,31 @@ def main(args: argparse.Namespace) -> float:
     train_data, test_data, train_target, test_target = sklearn.model_selection.train_test_split(
         data, target, test_size=args.test_size, random_state=args.seed)
 
+    results = np.zeros([test_data.shape[0], args.classes])
+
     # TODO: Using One-vs-One scheme, train (K \binom 2) classifiers, one for every
     # pair of classes $i < j$, using the `smo` method.
-    #
+    for i in range(args.classes):
+        train_i = (train_target == i)
+        test_i = (test_target == i)
+        for j in range(i + 1, args.classes):
+            print("Training classes", i, "and", j)
+            train_i_j = (train_i == j)
+            test_i_j = (test_i == j)
+
+            train_data_i_j = train_data[train_i_j]
+            train_target_i_j = 2 * (train_target[train_i_j] == i) - 1
+
+            test_data_i_j = test_data[test_i_j]
+            test_target_i_j = 2 * (test_target[test_i_j] == i) - 1
+
+            svs, svws, bias, l1, l2 = smo(args, train_data_i_j, train_target_i_j, test_data_i_j, test_target_i_j)
+
+            predictions = bias + sum(svw * kernel(args, test_data, svs) for sv, svw in zip(svs, svws))
+            
+            results[:, i] += predictions > 0
+            results[:, j] += predictions < 0
+
     # When training a classifier for classes $i < j$:
     # - keep only the training data of these classes, in the same order
     #   as in the input dataset;
@@ -57,7 +80,7 @@ def main(args: argparse.Namespace) -> float:
     # should be used, not all training data.
     #
     # Finally, compute the test set prediction accuracy.
-    test_accuracy = None
+    test_accuracy = klearn.metrics.accuracy_score(test_target, np.argmax(results, axis=1))
 
     return test_accuracy
 
