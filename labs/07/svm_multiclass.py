@@ -1,3 +1,6 @@
+# fbc0b6cc-0238-11eb-9574-ea7484399335
+# 7b885094-03f8-11eb-9574-ea7484399335
+
 import argparse
 
 import numpy as np
@@ -35,6 +38,12 @@ def smo(
     return smo_algorithm.smo(args, train_data, train_target, test_data, test_target)
 
 def main(args: argparse.Namespace) -> float:
+
+    #x = np.array([1,2,3,1,2,3])
+    #print(x)
+    #print((x==2) | (x==3))
+    #return 0
+
     # Use the digits dataset.
     data, target = sklearn.datasets.load_digits(n_class=args.classes, return_X_y=True)
     data = sklearn.preprocessing.MinMaxScaler().fit_transform(data)
@@ -48,22 +57,22 @@ def main(args: argparse.Namespace) -> float:
     # TODO: Using One-vs-One scheme, train (K \binom 2) classifiers, one for every
     # pair of classes $i < j$, using the `smo` method.
     for i in range(args.classes):
-        train_i = (train_target == i)
-        test_i = (test_target == i)
         for j in range(i + 1, args.classes):
             print("Training classes", i, "and", j)
-            train_i_j = (train_i == j)
-            test_i_j = (test_i == j)
+            flags_IorJ_train = ((train_target == i) | (train_target == j))
+            train_data_i_j = train_data[flags_IorJ_train]
+            train_target_i_j = 2 * (train_target[flags_IorJ_train] == i) - 1
 
-            train_data_i_j = train_data[train_i_j]
-            train_target_i_j = 2 * (train_target[train_i_j] == i) - 1
+            flags_IorJ_test = ((test_target == i) | (test_target == j))
+            test_data_i_j = test_data[flags_IorJ_test]
+            test_target_i_j = 2 * (test_target[flags_IorJ_test] == i) - 1
 
-            test_data_i_j = test_data[test_i_j]
-            test_target_i_j = 2 * (test_target[test_i_j] == i) - 1
+            svs, svws, b, acc_train, acc_test = smo(args, train_data_i_j, train_target_i_j, test_data_i_j, test_target_i_j)
 
-            svs, svws, bias, l1, l2 = smo(args, train_data_i_j, train_target_i_j, test_data_i_j, test_target_i_j)
-
-            predictions = bias + sum(svw * kernel(args, test_data, svs) for sv, svw in zip(svs, svws))
+            sum = 0
+            for sv, svw in zip(svs, svws):
+               sum += svw * kernel(args, test_data, sv)
+            predictions = b + sum
             
             results[:, i] += predictions > 0
             results[:, j] += predictions < 0
@@ -73,14 +82,14 @@ def main(args: argparse.Namespace) -> float:
     #   as in the input dataset;
     # - use targets 1 for the class $i$ and -1 for the class $j$.
 
-    # TODO: Classify the test set by majority voting of all the trained classifiers,
+    # Classify the test set by majority voting of all the trained classifiers,
     # using the lowest class index in the case of ties.
     #
     # Note that during prediction, only the support vectors returned by the `smo`
     # should be used, not all training data.
     #
     # Finally, compute the test set prediction accuracy.
-    test_accuracy = klearn.metrics.accuracy_score(test_target, np.argmax(results, axis=1))
+    test_accuracy = sklearn.metrics.accuracy_score(test_target, np.argmax(results, axis=1))
 
     return test_accuracy
 
