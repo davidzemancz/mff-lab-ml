@@ -25,14 +25,17 @@ def main(args: argparse.Namespace) -> float:
     train_data, test_data, train_target, test_target = sklearn.model_selection.train_test_split(
         data, target, test_size=args.test_size, random_state=args.seed)
 
-    # TODO: Train a naive Bayes classifier on the train data.
+    # Train a naive Bayes classifier on the train data.
     #
     # The `args.naive_bayes_type` can be one of:
     # - "gaussian": implement Gaussian NB training, by estimating mean and
     #   variance of the input features. For variance estimation use
     #     1/N * \sum_x (x - mean)^2
     #   and additionally increase all estimated variances by `args.alpha`.
-    #
+    if args.naive_bayes_type == "gaussian":
+        for target_class in range(args.classes):
+            dato = train_data[train_target == target_class]
+            params[:, c, 0] = np.mean(c_data, axis=0)
     #   During prediction, you can compute probability density function of a Gaussian
     #   distribution using `scipy.stats.norm`, which offers `pdf` and `logpdf`
     #   methods, among others.
