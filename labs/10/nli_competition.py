@@ -1,10 +1,26 @@
-#!/usr/bin/env python3
+# fbc0b6cc-0238-11eb-9574-ea7484399335
+# 7b885094-03f8-11eb-9574-ea7484399335
+
 import argparse
 import lzma
 import pickle
 import os
 
 import numpy as np
+
+import sklearn.compose
+import sklearn.datasets
+import sklearn.model_selection
+import sklearn.linear_model
+import sklearn.feature_selection
+import sklearn.metrics
+import sklearn.pipeline
+import sklearn.preprocessing
+import sklearn.neural_network
+import sklearn.kernel_approximation
+import sklearn.ensemble
+import sklearn.feature_extraction
+import sklearn.naive_bayes
 
 class Dataset:
     CLASSES = ["ARA", "DEU", "FRA", "HIN", "ITA", "JPN", "KOR", "SPA", "TEL", "TUR", "ZHO"]
@@ -31,6 +47,7 @@ parser.add_argument("--recodex", default=False, action="store_true", help="Runni
 parser.add_argument("--seed", default=42, type=int, help="Random seed")
 # For these and any other arguments you add, ReCodEx will keep your default value.
 parser.add_argument("--model_path", default="nli_competition.model", type=str, help="Model path")
+parser.add_argument("--test", default=False, type=bool, help="Test flag")
 
 def main(args: argparse.Namespace):
     if args.predict is None:
@@ -38,12 +55,25 @@ def main(args: argparse.Namespace):
         np.random.seed(args.seed)
         train = Dataset()
 
-        # TODO: Train a model on the given dataset and store it in `model`.
-        model = None
+        model = sklearn.pipeline.Pipeline([
+            ("FeatureUnion", sklearn.pipeline.FeatureUnion([
+                 ("TfidfVectorizer_char", sklearn.feature_extraction.text.TfidfVectorizer(lowercase=False, analyzer="char_wb", ngram_range=(1,4), max_features=10000)),
+                 ("TfidfVectorizer_word", sklearn.feature_extraction.text.TfidfVectorizer(lowercase=True, analyzer="word", ngram_range=(1,3), max_features=10000)),
+                 #("HashingVectorizer", sklearn.feature_extraction.text.HashingVectorizer(lowercase=False, ngram_range=(1,4)))
+             ], n_jobs=-1, verbose=True)),
+            ("SGDClassifier", sklearn.linear_model.SGDClassifier(verbose=True, n_jobs=-1, loss="hinge"))
+        ])
 
-        # Serialize the model.
-        with lzma.open(args.model_path, "wb") as model_file:
-            pickle.dump(model, model_file)
+        if args.test:
+            scores = sklearn.model_selection.cross_val_score(model, train.data, train.target, cv=3, n_jobs=-1)
+            print("Cross-validation with 3 folds: {:.2f} +-{:.2f}".format(100 * scores.mean(), 100 * scores.std()))
+        else:
+            # Train a model on the given dataset and store it in `model`.
+            model.fit(train.data, train.target)
+
+            # Serialize the model.
+            with lzma.open(args.model_path, "wb") as model_file:
+                pickle.dump(model, model_file)
 
     else:
         # Use the model and return test set predictions.
@@ -54,7 +84,7 @@ def main(args: argparse.Namespace):
 
         # TODO: Generate `predictions` with the test set predictions, either
         # as a Python list or a NumPy array.
-        predictions = None
+        predictions = model.predict(test.data)
 
         return predictions
 
