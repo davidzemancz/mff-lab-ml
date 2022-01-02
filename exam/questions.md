@@ -157,7 +157,7 @@
   classifier, explicitly state the Naive Bayes assumption, and show how
   prediction is performed. [5]
 
-- Considering a Gaussian naive Bayes, describe how are $p(x_i | C_k)$ modeled
+- Considering a Gaussian naive Bayes, describe how are $p(x_d | C_k)$ modeled
   (what distribution and which parameters does it have) and how we estimate it
   during fitting. [5]
 
@@ -165,7 +165,7 @@
   $p(\boldsymbol x | C_k)$ modeled (what distribution and which parameters does
   it have) and how we estimate it during fitting. [5]
 
-- Considering a Bernoulli naive Bayes, describe how are $p(x_i | C_k)$ modeled
+- Considering a Bernoulli naive Bayes, describe how are $p(x_d | C_k)$ modeled
   (what distribution and which parameters does it have) and how we estimate it
   during fitting. [5]
 
@@ -208,3 +208,76 @@
 
 - Describe how is a random forest trained (including bagging and random subset
   of features) and how is prediction performed for regression and classification. [10]
+
+#### Questions@:, Lecture 10 Questions
+- Write down the loss function which we optimize in gradient boosting decision
+  tree during the construction of $t^\mathrm{th}$ tree. Then define $g_i$
+  and $h_i$ and show the value $w_\mathcal{T}$ of optimal prediction in node
+  $\mathcal{T}$. [10]
+
+- Write down the loss function which we optimize in gradient boosting decision
+  tree during the construction of $t^\mathrm{th}$ tree. Then define $g_i$
+  and $h_i$ and the criterion used during node splitting. [10]
+
+- How is the learning rate used during training and prediction of a gradient
+  boosting decision tree? [5]
+
+- For a $K$-class classification, describe how to perform prediction with
+  a gradient boosting decision tree trained for $T$ timestamps (how the
+  individual trees perform prediction and how are the $K \cdot T$ trees
+  combined to produce the predicted categorical distribution). [5]
+
+- Considering a $K$-class classification, describe which individual trees (and
+  in which order) are created during gradient boosted decision tree training,
+  and what per-example loss is used for training every one of them (expressed
+  using predictions of the already trained trees). You do not need to describe
+  the training process of the individual trees themselves. [10]
+
+#### Questions@:, Lecture 11 Questions
+- When deriving the first principal component, write the value of the
+  variance we aim to maximize, both without and with the covariance matrix
+  (and define the covariance matrix). [5]
+
+- When deriving the first $M$ principal components, write the value of the
+  reconstruction loss we aim to minimize using all but the first $M$ principal
+  components, both without and with the covariance matrix (and define the
+  covariance matrix). [10]
+
+- Write down the formula for whitening (sphering) the data matrix $\boldsymbol X$,
+  and state what mean and covariance does the result has. [5]
+
+- Explain how to compute the first $M$ principal components using the SVD
+  decomposition of the centered data matrix $\boldsymbol X$. [5]
+
+- Write down the algorithm of computing the first $M$ principal components
+  of the data matrix $\boldsymbol X$ using the power iteration algorithm. [10]
+
+- Describe the K-means algorithm, including the `kmeans++` initialization. [10]
+
+#### Questions@:, Lecture 12 Questions
+- Define the multivariate Gaussian distribution of dimension $D$. [5]
+
+- Show how to sample from a multivariate Gaussian distribution
+  $\mathcal{N}(\boldsymbol \mu, \boldsymbol \Sigma)$ with a full covariance
+  matrix, by using random samples from $\mathcal{N}(0, \boldsymbol I)$
+  distribution. [5]
+
+- Describe the constant surfaces of a multivariate Gaussian distribution with
+  (1) $\sigma^2 \boldsymbol I$ covariation, (2) a diagonal covariation matrix,
+  (3) a full covariation matrix. [5]
+
+- Considering a Gaussian mixture with $K$ clusters, explain how we represent
+  the individual clusters and write down the likelihood of an example
+  $\boldsymbol x$ for a given Gaussian mixture. [5]
+
+- Write down the log likelihood of an $N$-element dataset for a given Gaussian
+  mixture model with $K$ components. [5]
+
+- Considering the algorithm for Gaussian mixture clustering, write down the
+  E step (how to compute the responsibilities) and the M step (how to update
+  the means, covariances and priors of the individual clusters). [10]
+
+- Write down the MSE loss of a regression problem, and formulate the
+  bias-variance trade-off, i.e., the decomposition of expected MSE loss
+  (with respect to a randomly sampled test set) into bias, variance and
+  irreducible error terms. [10]
