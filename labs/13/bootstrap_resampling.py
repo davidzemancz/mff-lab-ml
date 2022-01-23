@@ -1,4 +1,6 @@
-#!/usr/bin/env python3
+# fbc0b6cc-0238-11eb-9574-ea7484399335
+# 7b885094-03f8-11eb-9574-ea7484399335
+
 import argparse
 
 import numpy as np
@@ -50,23 +52,36 @@ def main(args: argparse.Namespace) -> tuple[list[tuple[float, float]], float]:
     #
     # Store the accuracies in percents of the individual models on these test
     # sets into the `scores` array of shape `[2, args.bootstrap_samples]`.
-    scores = None
+    scores = [[], []]
+    predictions = []
+    for model in models:
+        predictions.append(model.predict(test_data))
+    predictions = np.array(predictions)
+
+    for _ in range(args.bootstrap_samples): # For each sample
+        indices = generator.choice(len(test_data), size=len(test_data), replace=True) 
+        for (i, prediction) in enumerate(predictions):  # For each prediction
+            scores[i].append((np.mean(test_target[indices] == prediction[indices])) *100) # Append mean to score
+
+    scores = np.array(scores)
 
     # TODO: Compute the 95% confidence intervals of the two model scores into
     # `confidence_intervals`. Use `np.percentile` to compute percentiles.
-    confidence_intervals = [
-        (None, None), # confidence interval of the first model
-        (None, None), # confidence interval of the second model
-    ]
+    confidence_intervals = []
+    for score in scores:
+        confidence_intervals.append((np.percentile(score, 2.5), np.percentile(score, 97.5)))
 
-    # TODO: Perform the bootstrap paired model test of the alternative hypothesis
+   # TODO: Perform the bootstrap paired model test of the alternative hypothesis
     # that `models[1]` is better than `models[0]` (our null hypothesis is
     # that `models[0]` is better or equal to `models[1]`).
     #
     # Notably, compute the probability that the null hypothesis hold
     # (beware that this quantity is not a p-value) as the ratio of the model score
     # differences that are less or equal to zero. Store it in `result` as a percentage.
-    result = None
+    r = 0
+    for (s0, s1) in zip(scores[0], scores[1]):
+        if s1 - s0 <= 0: r = r + 1
+    result = 100 * r / len(scores[1])
 
     # Plot the histograms, confidence intervals and the p-value, if requested.
     if args.plot:

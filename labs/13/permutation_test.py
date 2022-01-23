@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import argparse
 
 import numpy as np
@@ -14,7 +13,7 @@ parser = argparse.ArgumentParser()
 # These arguments will be set appropriately by ReCodEx, even if you change them.
 parser.add_argument("--classes", default=10, type=int, help="Number of classes")
 parser.add_argument("--plot", default=False, const=True, nargs="?", type=str, help="Plot the predictions")
-parser.add_argument("--random_samples", default=1000, type=int, help="Number of random samples")
+parser.add_argument("--random_samples", default=10, type=int, help="Number of random samples")
 parser.add_argument("--recodex", default=False, action="store_true", help="Running in ReCodEx")
 parser.add_argument("--seed", default=42, type=int, help="Random seed")
 parser.add_argument("--test_size", default=0.5, type=lambda x:int(x) if x.isdigit() else float(x), help="Test set size")
@@ -41,6 +40,7 @@ def main(args: argparse.Namespace) -> float:
         ]))
         models[-1].fit(train_data, train_target)
 
+
     # TODO: Generate `args.random_samples` test set predictions, every formed
     # by sampling each test set example prediction from either models[0] or models[1],
     # according to a randomly generated assignment:
@@ -48,13 +48,28 @@ def main(args: argparse.Namespace) -> float:
     #
     # Store the accuracies of the `args.random_samples` test set predictions
     # into the `scores`, as percents.
-    scores = None
+    scores = []
+    predictions = []
+    for model in models:
+        predictions.append(model.predict(test_data))
+    predictions = np.array(predictions)
+
+    for r in range(args.random_samples):
+        assignments = generator.choice(2, size=len(test_data), replace=True)
+        print(predictions.shape)
+        predictions_r = predictions[np.array([0,1]), assignments]
+        scores.append(sklearn.metrics.accuracy_score(test_target, predictions_r))
 
     # TODO: Assuming the null hypothesis that the models have the same performance,
     # perform one-sided random permutation test and estimate its p-value
     # as a ratio of `scores` that are greater or equal to the performance of `models[1]`.
     # Store it in the `p_value` variable as a percentage.
-    p_value = None
+    model1_score = sklearn.metrics.accuracy_score(test_target, models[1].predict(test_data))
+    scores_geq = []
+    for score in scores:
+        if score >= model1_score:
+            scores_geq.append(score)
+    p_value = len(scores_geq) / len(scores)
 
     # Plot the histograms, confidence intervals and the p-value if requested.
     if args.plot:
