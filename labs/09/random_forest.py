@@ -40,11 +40,11 @@ def main(args: argparse.Namespace) -> tuple[float, float]:
     #
     # Use a simplified decision tree from the `decision_tree` assignment:
     # - use `entropy` as the criterion
-    # - use `max_depth` constraint, so split a node only if:
+    # - use `max_depth` constraint, to split a node only if:
     #   - its depth is less than `args.max_depth`
     #   - the criterion is not 0 (the corresponding instance targets are not the same)
     # When splitting nodes, proceed in the depth-first order, splitting all nodes
-    # in left subtrees before nodes in right subtrees.
+    # in the left subtree before the nodes in right subtree.
     #
     # Additionally, implement:
     # - feature subsampling: when searching for the best split, try only
@@ -64,7 +64,7 @@ def main(args: argparse.Namespace) -> tuple[float, float]:
     #   and if `args.bagging` is not set, use the original training data.
     #
     # During prediction, use voting to find the most frequent class for a given
-    # input, choosing the one with smallest class index in case of a tie.
+    # input, choosing the one with the smallest class index in case of a tie.
 
     # TODO: Finally, measure the training and testing accuracy.
     train_accuracy = None

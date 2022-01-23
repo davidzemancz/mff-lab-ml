@@ -26,8 +26,8 @@
   how a prediction is made for a given example. [5]
 
 - Show that the perceptron algorithm is an instance of stochastic gradient
-  descent. Why are the learning rates not needed (i.e., why does not the result
-  of the training depend on the learning rate)? [5]
+  descent. Why are the learning rates not needed (i.e., why are the predictions
+  of a trained model the same for all positive learning rates)? [5]
 
 - Define entropy, cross-entropy, Kullback-Leibler divergence, and prove
   the Gibbs inequality (i.e., that KL divergence is non-negative). [5]
@@ -58,6 +58,8 @@
   a $K$-class logistic regression model, including the explicit formulas of the
   loss function and its gradient. [10]
 
+- Prove why are decision regions of a multiclass logistic regression convex. [5]
+
 - Considering a single-layer MLP with $D$ input neurons, $H$ hidden
   neurons, $K$ output neurons, hidden activation $f$ and output activation $a$,
   list its parameters (including their size) and write down how is the output
@@ -69,7 +71,7 @@
   ReLU). [5]
 
 - Considering a single-layer MLP with $D$ input neurons, a ReLU hidden layer
-  with $H$ units and softmax output layer with $K$ units, write down the
+  with $H$ units and a softmax output layer with $K$ units, write down the
   formulas of the gradient of all the MLP parameters (two weight matrices and
   two bias vectors), assuming input $\boldsymbol x$, target $t$ and negative log
   likelihood loss. [10]
@@ -77,6 +79,13 @@
 - Formulate the Universal approximation theorem. [5]
 
 #### Questions@:, Lecture 5 Questions
+- How do we search for a minimum of a function
+  $f(\boldsymbol x): \mathbb{R}^D \rightarrow \mathbb{R}$ subject to equality
+  constraints $g_1(\boldsymbol x)=0, \ldots, g_m(\boldsymbol x)=0$? [5]
+
+- Prove which categorical distribution with $N$ classes has maximum
+  entropy. [5]
+
 - Consider derivation of softmax using maximum entropy principle, assuming
   we have a dataset of $N$ examples $(x_i, t_i), x_i \in \mathbb{R}^D,
   t_i \in \{1, 2, \ldots, K\}$. Formulate the three conditions we impose on the
@@ -85,9 +94,9 @@
 
 - Define precision (including true positives and others), recall, $F_1$ score
   and $F_\beta$ score (we stated several formulations for $F_1$ and $F_\beta$
-  scores; any of them will do). [5]
+  scores; any one of them will do). [5]
 
-- Explain the difference between micro-averaged and macro-averaged $F_1$ score. [5]
+- Explain the difference between micro-averaged and macro-averaged $F_1$ scores. [5]
 
 - Describe k-nearest neighbors prediction, both for regression and
   classification. Define $L_p$ norm and describe uniform, inverse
@@ -99,30 +108,39 @@
   a polynomial kernel of degree at most $d$, (3) an RBF kernel. [5]
 
 - Define a kernel and write down the mini-batch SGD training algorithm of dual
-  formulation of kernel linear regression. Then, describe how predictions for
+  formulation of kernel linear regression. Then describe how predictions for
   unseen data are made. [10]
 
 - Derive the primary formulation of hard-margin SVM (the value to minimize,
-  the constraints to fulfil) as a maximum-margin classifier. [5]
+  the constraints to fulfill) as a maximum-margin classifier (i.e., start by
+  margin maximization). [5]
+
+- How do we search for a minimum of a function
+  $f(\boldsymbol x): \mathbb{R}^D \rightarrow \mathbb{R}$ subject to an inequality
+  constraint $g(\boldsymbol x) \ge 0$? Formulate both the variant with KKT
+  conditions and the variant with the $\lambda$ maximization, and prove that they
+  are equivalent. [10]
 
 - Starting from primary hard-margin SVM formulation, derive the dual formulation
-  (the Lagrangian L, the required conditions, the KKT conditions). [10]
+  (the Lagrangian $\mathcal{L}$ in the form used for training and prediction,
+  the required conditions, the KKT conditions of the solution). [10]
 
 - Considering hard-margin SVM, define what a support vector is, and how
   predictions are performed for unseen data. [5]
 
 #### Questions@:, Lecture 7 Questions
 - Write down the primary formulation of soft-margin SVM using the slack
-  variables (the value to minimize, the constraints to fulfil). [5]
+  variables (the value to minimize, the constraints to fulfill). [5]
 
 - Starting from primary soft-margin SVM formulation, derive the dual formulation
-  (the Lagrangian L, the required conditions, the KKT conditions). [10]
+  (the Lagrangian $\mathcal{L}$ in the form used for training and prediction,
+  the required conditions, the KKT conditions of the solution). [10]
 
 - Write down the primary formulation of soft-margin SVM using the hinge
   loss. [5]
 
 - Describe the high-level overview of the SMO algorithm (the test whether
-  the KKT conditions hold, how we select the $a_i$ and $a_j$ to update,
+  the KKT conditions hold, how do we select the $a_i$ and $a_j$ to update,
   what is the goal of updating the $a_i$ and $a_j$, how do we detect
   convergence; but without the update of $a_i$, $a_j$, $b$ themselves). [5]
 
@@ -133,21 +151,21 @@
 
 - Describe the part of the SMO algorithm which updates $b$ to maximize the
   Lagrangian. If you explain how is the update derived (so that if I followed
-  the instructions, I would come up with two $b$ candidates and a rule how
-  to utilize them), you do not need to write explicit formulas. [10]
+  the instructions, I would come up with two $b$ candidates and a rule to
+  utilize them), you do not need to write explicit formulas. [10]
 
 - Describe the one-versus-one and one-versus-rest schemes of constructing
   a $K$-class classifier by combining multiple binary classifiers. [5]
 
 #### Questions@:, Lecture 8 Questions
-- Explain how is the TF-IDF weight of a given document-term computed. [5]
+- Explain how is the TF-IDF weight of a given document-term pair computed. [5]
 
-- Define conditional entropy, mutual information, write down relation
+- Define conditional entropy, mutual information, write down the relation
   between them, and finally prove that mutual information is zero
   if and only if the two random variables are independent (you do not
   need to prove statements about $D_\textrm{KL}$). [5]
 
-- Show that TF-IDF terms can be considered portions of a suitable mutual
+- Show that TF-IDF terms can be considered portions of suitable mutual
   information. [5]
 
 - Show that $L_2$-regularization can be obtained from a suitable prior
@@ -186,7 +204,7 @@
 
 - Considering an averaging ensemble of $M$ models, prove the relation between
   the average mean squared error of the ensemble and the average error of the
-  individual models, assuming the model errors have zero mean and are
+  individual models, assuming the model errors have zero means and are
   uncorrelated. [10]
 
 - In a regression decision tree, state what values are kept in internal nodes,
@@ -206,8 +224,8 @@
 - For $K$-class classification, derive the entropy criterion from a non-averaged
   NLL loss. [10]
 
-- Describe how is a random forest trained (including bagging and random subset
-  of features) and how is prediction performed for regression and classification. [10]
+- Describe how is a random forest trained (including bagging and a random subset
+  of features) and how is prediction performed for regression and classification. [5]
 
 #### Questions@:, Lecture 10 Questions
 - Write down the loss function which we optimize in gradient boosting decision
@@ -244,12 +262,12 @@
   covariance matrix). [10]
 
 - Write down the formula for whitening (sphering) the data matrix $\boldsymbol X$,
-  and state what mean and covariance does the result has. [5]
+  and state what mean and covariance does the result have. [5]
 
 - Explain how to compute the first $M$ principal components using the SVD
-  decomposition of the centered data matrix $\boldsymbol X$. [5]
+  decomposition of the data matrix $\boldsymbol X$, and why it works. [5]
 
-- Write down the algorithm of computing the first $M$ principal components
+- Write down the algorithm for computing the first $M$ principal components
   of the data matrix $\boldsymbol X$ using the power iteration algorithm. [10]
 
 - Describe the K-means algorithm, including the `kmeans++` initialization. [10]
@@ -270,7 +288,7 @@
   the individual clusters and write down the likelihood of an example
   $\boldsymbol x$ for a given Gaussian mixture. [5]
 
-- Write down the log likelihood of an $N$-element dataset for a given Gaussian
+- Write down the log-likelihood of an $N$-element dataset for a given Gaussian
   mixture model with $K$ components. [5]
 
 - Considering the algorithm for Gaussian mixture clustering, write down the
@@ -281,3 +299,32 @@
   bias-variance trade-off, i.e., the decomposition of expected MSE loss
   (with respect to a randomly sampled test set) into bias, variance and
   irreducible error terms. [10]
+
+#### Questions@:, Lecture 13 Questions
+- Considering statistical hypothesis testing, define type I errors and type II
+  errors (in terms of the null hypothesis). Finally, define what a significance
+  level is. [5]
+
+- Explain what a test statistic and a p-value are. [5]
+
+- Write down the steps of a statistical hypothesis test, including a definition
+  of a p-value. [5]
+
+- Explain the differences between a one-sample test, two-sample test and
+  a paired test. [5]
+
+- When considering multiple comparison problem, define the family-wise
+  error rate, and prove the Bonferroni correction, which allows
+  limiting the family-wise error rate by a given $\alpha$. [5]
+
+- For a trained model and a given test set with $N$ examples and metric $E$,
+  write how to estimate 95\% confidence intervals using bootstrap resampling.
+  [5]
+
+- For two trained models and a given test set with $N$ examples and metric $E$,
+  explain how to perform a paired bootstrap test that the first model is better
+  than the other. [5]
+
+- For two trained models and a given test set with $N$ examples and metric $E$,
+  explain how to perform a random permutation test that the first model is better
+  than the other with a significance level $\alpha$. [5]

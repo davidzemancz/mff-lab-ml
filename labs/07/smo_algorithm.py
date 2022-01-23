@@ -61,6 +61,7 @@ def smo(
             # We want j != i, so we "skip" over the value of i
             j = j + (j >= i)
 
+<<<<<<< HEAD
             #  Check that a[i] fulfils the KKT conditions, using `args.tolerance` during comparisons.
             y_xi = ((a * train_target) @ K_train[i]) + b
             E_i = y_xi - train_target[i]
@@ -108,6 +109,31 @@ def smo(
                         as_changed = as_changed + 1
 
         # After each iteration, measure the accuracy for both the
+=======
+            # TODO: Check that a[i] fulfills the KKT conditions, using `args.tolerance` during comparisons.
+
+            # If the conditions do not hold, then
+            # - compute the updated unclipped a_j^new.
+            #
+            #   If the second derivative of the loss with respect to a[j]
+            #   is > -`args.tolerance`, do not update a[j] and continue
+            #   with next i.
+
+            # - clip the a_j^new to suitable [L, H].
+            #
+            #   If the clipped updated a_j^new differs from the original a[j]
+            #   by less than `args.tolerance`, do not update a[j] and continue
+            #   with next i.
+
+            # - update a[j] to a_j^new, and compute the updated a[i] and b.
+            #
+            #   During the update of b, compare the a[i] and a[j] to zero by
+            #   `> args.tolerance` and to C using `< args.C - args.tolerance`.
+
+            # - increase `as_changed`
+
+        # TODO: After each iteration, measure the accuracy for both the
+>>>>>>> ec490c5ff8c076a2ceab6daca82414876334fef9
         # train set and the test set and append it to `train_accs` and `test_accs`.
         preds_train = a * train_target @ K_train + b
         acc_train = sklearn.metrics.accuracy_score(train_target, np.sign(preds_train))

@@ -32,6 +32,7 @@ def main(args: argparse.Namespace) -> float:
     #   variance of the input features. For variance estimation use
     #     1/N * \sum_x (x - mean)^2
     #   and additionally increase all estimated variances by `args.alpha`.
+<<<<<<< HEAD
     if args.naive_bayes_type == "gaussian":
         for target_class in range(args.classes):
             dato = train_data[train_target == target_class]
@@ -39,6 +40,12 @@ def main(args: argparse.Namespace) -> float:
     #   During prediction, you can compute probability density function of a Gaussian
     #   distribution using `scipy.stats.norm`, which offers `pdf` and `logpdf`
     #   methods, among others.
+=======
+    #
+    #   During prediction, you can compute the probability density function
+    #   of a Gaussian distribution using `scipy.stats.norm`, which offers
+    #   `pdf` and `logpdf` methods, among others.
+>>>>>>> ec490c5ff8c076a2ceab6daca82414876334fef9
     #
     # - "multinomial": Implement multinomial NB with smoothing factor `args.alpha`.
     #
